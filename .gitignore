@@ -4,8 +4,8 @@ __pycache__/
 
 output/
 
-Tesseract/
-poppler-26.02.0/
+Tesseract
+poppler-26.02.0
 
 *.exe
 *.dll
