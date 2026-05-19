@@ -1,0 +1,21 @@
+### --- Python Settings ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+venv_clean/
+.venv_clean/
+
+### --- IDE & Tools ---
+.vscode/
+.idea/
+.vetest
+vetest/
+
+
+### --- Git Metadata Settings ---
+# این خط معمولا در .gitattributes قرار می‌گیرد اما اینجا در بخش تنظیمات آورده شد
+*.html linguist-documentation=true
