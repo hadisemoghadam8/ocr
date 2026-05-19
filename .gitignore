@@ -1,13 +1,13 @@
+# Virtual Environment
 venv/
+
+# Python cache
 __pycache__/
 *.pyc
 
+# Output files
 output/
 
-
-*.exe
-*.dll
-*.zip
-
+# IDE settings
 .idea/
 .vscode/
