@@ -1,21 +1,15 @@
-### --- Python Settings ---
+venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-venv_clean/
-.venv_clean/
 
-### --- IDE & Tools ---
-.vscode/
+output/
+
+Tesseract/
+poppler-26.02.0/
+
+*.exe
+*.dll
+*.zip
+
 .idea/
-.vetest
-vetest/
-
-
-### --- Git Metadata Settings ---
-# این خط معمولا در .gitattributes قرار می‌گیرد اما اینجا در بخش تنظیمات آورده شد
-*.html linguist-documentation=true
+.vscode/
