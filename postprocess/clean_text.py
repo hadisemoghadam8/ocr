@@ -1,4 +1,9 @@
 #postprocess\clean_text.py
+
+import re
+
+
+
 def clean_ocr_text(text: str) -> str:
     lines = text.splitlines()
 
@@ -9,10 +14,6 @@ def clean_ocr_text(text: str) -> str:
 
         # حذف خالی
         if not line:
-            continue
-
-        # حذف خیلی کوتاه
-        if len(line) < 3:
             continue
 
         # حذف خطوط پر از سمبل
@@ -47,20 +48,8 @@ def clean_ocr_text(text: str) -> str:
         )
 
         # حذف خطوط پر از سمبل
-        if symbols / len(line) > 0.35 and persian_chars < 2:
+        if len(line) > 0 and symbols / len(line) > 0.35 and persian_chars < 2:
             continue
-        # # اگر انگلیسی زیاد و فارسی نداشت → احتمال نویز
-        # if english_chars > 3 and persian_chars == 0:
-        #     # ولی بعضی UI text ها رو نگه دار
-        #     allowed = [
-        #         "SUN",
-        #         "AM",
-        #         "PM",
-        #         "Replied"
-        #     ]
-
-        #     if not any(word in line for word in allowed):
-        #         continue
 
         # حذف خطوط تکراری عجیب
         if line.lower() in ["ae", "alll", "lll"]:
@@ -75,8 +64,8 @@ def clean_ocr_text(text: str) -> str:
             continue
 
         # حذف نویزهای انتهایی مثل @D &
-        if re.fullmatch(r'[@&A-Za-z\s]{1,6}', line):
-            continue
+        # if re.fullmatch(r'[@&A-Za-z\s]{1,6}', line):
+        #     continue
 
         # حذف نویزهای انتهایی داخل خط
         line = re.sub(r'\s+@[\w\s&]+$', '', line)

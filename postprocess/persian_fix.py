@@ -1,4 +1,8 @@
 #C:\Users\ASUS\ocr_project\postprocess\persian_fix.py
+import re
+from postprocess.rtl import smart_direction_fix
+
+
 def improve_persian_text(text: str) -> str:
     if not text:
         return ""
@@ -403,7 +407,7 @@ def improve_persian_text(text: str) -> str:
     fixed_lines = []
 
     for line in text.splitlines():
-        fixed_lines.append(rtl_display_line(line))
+        fixed_lines.append(smart_direction_fix(line))
 
     text = "\n".join(fixed_lines)
 

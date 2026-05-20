@@ -4,8 +4,10 @@ import re
 import cv2
 import numpy as np
 import pytesseract
-
 from pdf2image import convert_from_path
+
+from pipelines.pdf_pipeline import preprocess_pdf_page
+from postprocess.persian_fix import advanced_score, improve_persian_text, fix_english_ocr
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +69,7 @@ def process_pdf(
             config=r'--oem 1 --psm 4 -c preserve_interword_spaces=1'
         )
 
-        easy_text = run_easyocr(gray)
+        easy_text = run_easyocr(img)
 
         tess_clean = clean_ocr_text(
             clean_bidi(tess_text)

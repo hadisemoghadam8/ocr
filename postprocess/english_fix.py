@@ -1,4 +1,7 @@
 #C:\Users\ASUS\ocr_project\postprocess\english_fix.py
+import re
+
+
 def fix_english_ocr(text: str) -> str:
     # اصلاحات پایه
     replacements = {

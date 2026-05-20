@@ -1,93 +1,36 @@
-#C:\Users\ASUS\ocr_project\pipelines\pdf_pipeline.py
-def preprocess_pdf_page(img):
 
-    img_np = np.array(img)
+# C:\Users\ASUS\ocr_project\pipelines\pdf_pipeline.py
 
-    gray = cv2.cvtColor(
-        img_np,
-        cv2.COLOR_RGB2GRAY
-    )
+from pdf2image import convert_from_path
+import numpy as np
 
-    # -----------------------------
-    # auto upscale
-    # -----------------------------
-    h, w = gray.shape
-
-    if w < 1800:
-        scale = 2.2
-    else:
-        scale = 1.4
-
-    gray = cv2.resize(
-        gray,
-        None,
-        fx=scale,
-        fy=scale,
-        interpolation=cv2.INTER_CUBIC
-    )
-
-    # -----------------------------
-    # denoise
-    # -----------------------------
-    gray = cv2.fastNlMeansDenoising(
-        gray,
-        None,
-        10,
-        7,
-        21
-    )
-
-    # -----------------------------
-    # local contrast
-    # -----------------------------
-    clahe = cv2.createCLAHE(
-        clipLimit=2.5,
-        tileGridSize=(8, 8)
-    )
-
-    gray = clahe.apply(gray)
-
-    # -----------------------------
-    # sharpen
-    # -----------------------------
-    blur = cv2.GaussianBlur(
-        gray,
-        (0, 0),
-        1.2
-    )
-
-    sharp = cv2.addWeighted(
-        gray,
-        1.6,
-        blur,
-        -0.6,
-        0
-    )
-
-    # -----------------------------
-    # adaptive threshold
-    # -----------------------------
-    th = cv2.adaptiveThreshold(
-    sharp,
-    255,
-    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    cv2.THRESH_BINARY,
-    31,
-    5
-)
-
-    # -----------------------------
-    # morphology cleanup
-    # حذف نویز ریز
-    # -----------------------------
-    kernel = np.ones((2, 2), np.uint8)
-
-    th = cv2.morphologyEx(
-        th,
-        cv2.MORPH_OPEN,
-        kernel
-    )
-
-    return gray, th
+from pipelines.image_pipeline import ImagePipeline
 
 
+class PDFPipeline:
+
+    @staticmethod
+    def process(pdf_path):
+        from pdf2image import convert_from_path
+        import numpy as np
+        import cv2
+
+        pages = convert_from_path(pdf_path, dpi=300)
+
+        results = []
+
+        for i, page in enumerate(pages):
+            print(f"[INFO] Page {i+1}")
+
+            image = np.array(page)
+
+            temp_path = f"output/temp_page_{i}.jpg"
+            page.save(temp_path)
+
+            from pipelines.image_pipeline import ImagePipeline
+
+            text = ImagePipeline.process(temp_path)
+
+            results.append(text)
+
+        return "\n\n".join(results)

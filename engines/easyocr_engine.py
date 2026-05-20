@@ -1,11 +1,13 @@
 #C:\Users\ASUS\ocr_project\engines\easyocr_engine.py
+import easyocr  
+import numpy as np 
 
-easyocr_reader = easyocr.Reader(
-    ['fa', 'en'],
-    gpu=True
-)
-    results = easyocr_reader.readtext(
+reader = easyocr.Reader(['fa', 'en'], gpu=True)
+
+def run_easyocr(img):
+    results = reader.readtext(
         np.array(img),
         detail=0,
         paragraph=True
     )
+    return results
