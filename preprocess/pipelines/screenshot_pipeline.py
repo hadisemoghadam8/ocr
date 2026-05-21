@@ -10,121 +10,75 @@ class ScreenshotBooster:
     def process(image):
 
         # ---------------------------------
-        # load image
-        # ---------------------------------
-        if isinstance(image, str):
-            image = cv2.imread(image)
-
-        if image is None:
-            raise ValueError("Could not load image")
-
-        # ---------------------------------
-        # remove screenshot UI areas
-        # top status bar / bottom nav
+        # upscale
         # ---------------------------------
         h, w = image.shape[:2]
 
-        top_crop = int(h * 0.08)
-        bottom_crop = int(h * 0.10)
+        if max(h, w) < 1400:
 
-        image = image[top_crop:h - bottom_crop, :]
+            image = cv2.resize(
+                image,
+                None,
+                fx=2,
+                fy=2,
+                interpolation=cv2.INTER_CUBIC
+            )
 
         # ---------------------------------
-        # grayscale
+        # denoise light
         # ---------------------------------
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # ---------------------------------
-        # upscale
-        # preserve Persian glyph details
-        # ---------------------------------
-        gray = cv2.resize(
-            gray,
+        image = cv2.fastNlMeansDenoisingColored(
+            image,
             None,
-            fx=2.5,
-            fy=2.5,
-            interpolation=cv2.INTER_CUBIC
+            3,
+            3,
+            7,
+            21
         )
 
         # ---------------------------------
-        # local contrast enhancement
-        # better for UI screenshots
+        # sharpen فقط ملایم
         # ---------------------------------
+        kernel = np.array([
+            [0, -1, 0],
+            [-1, 5, -1],
+            [0, -1, 0]
+        ])
+
+        image = cv2.filter2D(
+            image,
+            -1,
+            kernel
+        )
+
+        # ---------------------------------
+        # contrast light
+        # ---------------------------------
+        lab = cv2.cvtColor(
+            image,
+            cv2.COLOR_BGR2LAB
+        )
+
+        l, a, b = cv2.split(lab)
+
         clahe = cv2.createCLAHE(
-            clipLimit=2.5,
+            clipLimit=1.5,
             tileGridSize=(8, 8)
         )
 
-        gray = clahe.apply(gray)
+        l = clahe.apply(l)
 
-        # ---------------------------------
-        # edge-preserving denoise
-        # keeps Persian characters connected
-        # ---------------------------------
-        gray = cv2.bilateralFilter(
-            gray,
-            d=9,
-            sigmaColor=75,
-            sigmaSpace=75
+        lab = cv2.merge([l, a, b])
+
+        image = cv2.cvtColor(
+            lab,
+            cv2.COLOR_LAB2BGR
         )
 
         # ---------------------------------
-        # adaptive threshold
-        # better than OTSU for screenshots
+        # مهم:
+        # threshold نکن
+        # grayscale خالص هم نکن
         # ---------------------------------
-        binary = cv2.adaptiveThreshold(
-            gray,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            31,
-            7
-        )
 
-        # ---------------------------------
-        # morphology cleanup
-        # reconnect broken Persian glyphs
-        # ---------------------------------
-        kernel = np.ones((2, 2), np.uint8)
-
-        binary = cv2.morphologyEx(
-            binary,
-            cv2.MORPH_CLOSE,
-            kernel,
-            iterations=1
-        )
-
-        # ---------------------------------
-        # remove tiny noisy regions
-        # ---------------------------------
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
-            255 - binary,
-            connectivity=8
-        )
-
-        cleaned = np.ones_like(binary) * 255
-
-        for i in range(1, num_labels):
-
-            area = stats[i, cv2.CC_STAT_AREA]
-
-            # remove tiny garbage
-            if area < 12:
-                continue
-
-            cleaned[labels == i] = 0
-
-        # ---------------------------------
-        # mild sharpening
-        # ---------------------------------
-        blur = cv2.GaussianBlur(cleaned, (0, 0), 1.0)
-
-        sharpened = cv2.addWeighted(
-            cleaned,
-            1.5,
-            blur,
-            -0.5,
-            0
-        )
-
-        return sharpened
+        return image

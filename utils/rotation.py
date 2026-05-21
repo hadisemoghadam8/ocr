@@ -91,39 +91,64 @@ def _count_bad_lines(text: str) -> int:
     return bad
 
 
-# =====================================================
-# Orientation prior
-# =====================================================
 
-def _orientation_bonus(
+
+
+def _layout_bonus(
     image: Image.Image,
-    angle: int
+    angle: int,
+    text: str
 ) -> float:
 
     w, h = image.size
 
     ratio = w / max(h, 1)
 
+    persian = _count_persian(text)
+
+    lines = [
+        x.strip()
+        for x in text.splitlines()
+        if x.strip()
+    ]
+
+    line_count = len(lines)
+
     bonus = 0.0
 
-    # افقی
-    if ratio >= 1.15:
+    # ---------------------------------
+    # portrait image
+    # ---------------------------------
+
+    if ratio < 0.9:
+
+        # اگر متن فارسی زیاد داریم
+        # معمولاً متن خوابیده است
+        if persian > 20:
+
+            if angle in (90, 270):
+                bonus += 45
+
+            else:
+                bonus -= 20
+
+    # ---------------------------------
+    # landscape image
+    # ---------------------------------
+
+    elif ratio > 1.1:
 
         if angle in (0, 180):
-            bonus += 25
-        else:
-            bonus -= 40
+            bonus += 20
 
-    # عمودی
-    elif ratio <= 0.85:
+    # ---------------------------------
+    # line structure
+    # ---------------------------------
 
-        if angle in (90, 270):
-            bonus += 25
-        else:
-            bonus -= 40
+    if line_count <= 2:
+        bonus -= 10
 
     return bonus
-
 
 # =====================================================
 # OCR score
@@ -160,18 +185,19 @@ def score_ocr_text(
         persian_chars * 5 +
         english_chars * 1 +
         digits * 2 +
-        valid_words * 8 +
+        valid_words * 4 +
         newline_count * 1 -
         garbage * 7 -
-        bad_lines * 22 -
+        bad_lines * 35 -
         weird_patterns * 25
     )
 
     # orientation prior
-    score += _orientation_bonus(
-        image,
-        angle
-    )
+    score += _layout_bonus(
+            image,
+            angle,
+            text
+        )
 
     # متن خیلی کم
     if len(text.strip()) < 10:
@@ -257,41 +283,20 @@ def _rotate_cv_image(
 # =====================================================
 # Main rotation detector
 # =====================================================
-
 def detect_best_rotation(cv_image):
-
-    # ---------------------------------
-    # 1) skew correction کوچک
-    # ---------------------------------
-
-    skew_angle = _detect_skew_angle(
-        cv_image
-    )
-
-    print(
-        f"[INFO] Detected skew angle: "
-        f"{skew_angle:.2f}"
-    )
-
-    corrected = _rotate_cv_image(
-        cv_image,
-        skew_angle
-    )
 
     pil_image = Image.fromarray(
         cv2.cvtColor(
-            corrected,
+            cv_image,
             cv2.COLOR_BGR2RGB
         )
     )
 
-    # ---------------------------------
-    # 2) orientation detection
-    # ---------------------------------
+    best_score = -999999
+    best_angle = 0
+    best_image = pil_image
 
-    results = []
-
-    for angle in ROTATIONS:
+    for angle in [0, 90, 180, 270]:
 
         rotated = pil_image.rotate(
             angle,
@@ -308,115 +313,82 @@ def detect_best_rotation(cv_image):
                 config=f"--oem 3 --psm {psm}"
             )
 
-            score = score_ocr_text(
-                text,
-                rotated,
-                angle
+            persian = len(
+                re.findall(
+                    r'[\u0600-\u06FF]',
+                    text
+                )
             )
+
+            digits = len(
+                re.findall(r'\d', text)
+            )
+
+            garbage = len(
+                re.findall(
+                    r'[@#$%^&*_=+<>\\/|]',
+                    text
+                )
+            )
+
+            english_noise = len(
+                re.findall(
+                    r'[A-Za-z]{1,2}',
+                    text
+                )
+            )
+
+            lines = [
+                x.strip()
+                for x in text.splitlines()
+                if x.strip()
+            ]
+
+            score = (
+                persian * 5 +
+                digits * 2 -
+                garbage * 4 -
+                english_noise * 2
+            )
+
+            # ---------------------------------
+            # اگر متن فارسی زیاد داریم
+            # portrait را ترجیح بده
+            # ---------------------------------
+
+            w, h = rotated.size
+
+            if h > w and persian > 15:
+
+                if angle in (90, 270):
+                    score += 35
 
             print(
                 f"[INFO] angle={angle} "
                 f"score={score:.2f}"
             )
 
-            results.append({
-                "angle": angle,
-                "score": score,
-                "image": rotated
-            })
+            if score > best_score:
+
+                best_score = score
+                best_angle = angle
+                best_image = rotated
 
         except Exception as e:
             print(e)
-
-    # ---------------------------------
-    # مرتب‌سازی
-    # ---------------------------------
-
-    results = sorted(
-        results,
-        key=lambda x: x["score"],
-        reverse=True
-    )
-
-    best = results[0]
-
-    best_angle = best["angle"]
-
-    best_score = best["score"]
-
-    best_image = best["image"]
-
-    # ---------------------------------
-    # جلوگیری از 180 اشتباه
-    # ---------------------------------
-
-    zero_result = next(
-        x for x in results
-        if x["angle"] == 0
-    )
-
-    if best_angle == 180:
-
-        diff = (
-            best_score -
-            zero_result["score"]
-        )
-
-        # اگر اختلاف کم بود
-        # 180 نزن
-        if diff < 60:
-
-            print(
-                "[INFO] 180° rejected "
-                "(difference too small)"
-            )
-
-            best_angle = 0
-
-            best_image = zero_result["image"]
-
-            best_score = zero_result["score"]
-
-    # ---------------------------------
-    # جلوگیری از چرخش اشتباه کلی
-    # ---------------------------------
-
-    if best_angle != 0:
-
-        diff = (
-            best_score -
-            zero_result["score"]
-        )
-
-        if diff < 35:
-
-            print(
-                "[INFO] Rotation difference small "
-                "-> keeping original orientation"
-            )
-
-            best_angle = 0
-
-            best_image = zero_result["image"]
-
-            best_score = zero_result["score"]
 
     corrected_cv = cv2.cvtColor(
         np.array(best_image),
         cv2.COLOR_RGB2BGR
     )
 
-    final_angle = (
-        skew_angle + best_angle
-    )
-
     print(
         f"[INFO] Final rotation: "
-        f"{final_angle:.2f}°"
+        f"{best_angle}°"
     )
 
     return {
         "image": corrected_cv,
-        "angle": final_angle,
+        "angle": best_angle,
         "score": best_score
     }

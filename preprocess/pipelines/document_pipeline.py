@@ -1,10 +1,14 @@
-import cv2
+#C:\Users\ASUS\ocr_project\preprocess\pipelines\document_pipeline.py
 
+import cv2
 
 
 def process_document_image(image):
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_BGR2GRAY
+    )
 
     # -----------------------------
     # upscale
@@ -23,44 +27,43 @@ def process_document_image(image):
     gray = cv2.fastNlMeansDenoising(
         gray,
         None,
-        10,
+        8,
         7,
         21
     )
 
     # -----------------------------
-    # CLAHE
+    # CLAHE ملایم
     # -----------------------------
     clahe = cv2.createCLAHE(
-        clipLimit=2.5,
+        clipLimit=1.5,
         tileGridSize=(8, 8)
     )
 
     contrast = clahe.apply(gray)
 
     # -----------------------------
-    # sharpen
+    # sharpen سبک
     # -----------------------------
-    blur = cv2.GaussianBlur(contrast, (0, 0), 1.2)
+    blur = cv2.GaussianBlur(
+        contrast,
+        (0, 0),
+        1.2
+    )
 
     sharp = cv2.addWeighted(
         contrast,
-        1.6,
+        1.15,
         blur,
-        -0.6,
+        -0.15,
         0
     )
 
     # -----------------------------
-    # threshold
+    # خروجی grayscale
+    # بدون binary
     # -----------------------------
-    binary = cv2.adaptiveThreshold(
+    return cv2.cvtColor(
         sharp,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        5
+        cv2.COLOR_GRAY2BGR
     )
-
-    return binary
