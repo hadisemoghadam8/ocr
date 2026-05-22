@@ -12,7 +12,7 @@ def process_scene_text_image(image):
 
     h, w = image.shape[:2]
 
-    if max(h, w) < 1800:
+    if max(h, w) < 1400:
 
         image = cv2.resize(
             image,
@@ -67,14 +67,14 @@ def process_scene_text_image(image):
     blur = cv2.GaussianBlur(
         image,
         (0, 0),
-        1.2
+        1.0
     )
 
     image = cv2.addWeighted(
         image,
-        1.25,
+        1.12,
         blur,
-        -0.25,
+        -0.12,
         0
     )
 

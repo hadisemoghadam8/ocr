@@ -41,23 +41,19 @@ class PipelineRouter:
 
         is_real_screenshot = (
 
-            # UI واضح
-            ui_score > 0.75
+            ui_score > 0.72
 
             and
 
-            # نویز خیلی کم
-            noise < 28
+            noise < 60
 
             and
 
-            # لبه کم
-            edge_density < 0.10
+            edge_density < 0.22
 
             and
 
-            # عکس واقعی نباشد
-            contrast < 55
+            brightness > 120
         )
         if is_real_screenshot:
 
