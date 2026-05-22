@@ -6,33 +6,42 @@ from postprocess.scoring import score_ocr_text
 
 
 class OCRManager:
-
     @staticmethod
     def normalize_ocr_output(text):
 
         if text is None:
             return ""
 
+        # already string
         if isinstance(text, str):
             return text
 
+        # EasyOCR list output
         if isinstance(text, list):
 
-            if len(text) == 0:
-                return ""
+            cleaned = []
 
-            # EasyOCR output: [(text, conf), ...]
-            if isinstance(text[0], tuple):
-                return " ".join(
-                    [item[1] for item in text if isinstance(item, tuple) and len(item) > 1]
-                )
+            for item in text:
 
-            return " ".join(map(str, text))
+                if not item:
+                    continue
+
+                if isinstance(item, str):
+                    cleaned.append(item.strip())
+
+                elif isinstance(item, tuple):
+
+                    # detail=1 mode
+                    if len(item) >= 2:
+                        cleaned.append(str(item[1]).strip())
+
+            return "\n".join(cleaned)
 
         return str(text)
+    
 
     @staticmethod
-    def run_best_engine(image):
+    def run_best_engine(image, scene_text=False):
 
         # -----------------------------
         # Tesseract
@@ -48,6 +57,16 @@ class OCRManager:
             run_easyocr(image)
         )
 
+        # ---------------------------------
+        # Scene text همیشه EasyOCR
+        # ---------------------------------
+
+        if scene_text:
+
+            print("[INFO] Scene text → EasyOCR forced")
+
+            return easy_text
+
         # -----------------------------
         # Score outputs
         # -----------------------------
@@ -61,8 +80,11 @@ class OCRManager:
         # Select best result
         # -----------------------------
         if easy_score > tess_score:
+
             print("[INFO] EasyOCR selected")
+
             return easy_text
 
         print("[INFO] Tesseract selected")
+
         return tess_text

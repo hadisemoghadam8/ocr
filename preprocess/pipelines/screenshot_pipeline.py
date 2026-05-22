@@ -75,6 +75,24 @@ class ScreenshotBooster:
             cv2.COLOR_LAB2BGR
         )
 
+
+        # ---------------------------------
+        # soft sharpen without grayscale
+        # ---------------------------------
+
+        blur = cv2.GaussianBlur(
+            image,
+            (0, 0),
+            1.0
+        )
+
+        image = cv2.addWeighted(
+            image,
+            1.15,
+            blur,
+            -0.15,
+            0
+        )
         # ---------------------------------
         # مهم:
         # threshold نکن

@@ -20,7 +20,7 @@ def detect_text_region(image):
         blur,
         180,
         255,
-        cv2.THRESH_BINARY
+        cv2.THRESH_BINARY + cv2.THRESH_OTSU
     )
 
     # morph
@@ -85,6 +85,19 @@ def detect_text_region(image):
     x2 = min(w, x + cw + pad)
     y2 = min(h, y + ch + pad)
 
-    cropped = image[y1:y2, x1:x2]
+    roi = image[y1:y2, x1:x2]
 
-    return cropped
+    # sharpen ROI
+    roi = cv2.GaussianBlur(roi, (0, 0), 1.0)
+
+    roi = cv2.addWeighted(
+        roi,
+        1.4,
+        roi,
+        0,
+        0
+    )
+
+    image[y1:y2, x1:x2] = roi
+
+    return image

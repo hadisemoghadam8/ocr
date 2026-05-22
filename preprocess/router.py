@@ -4,7 +4,7 @@ from preprocess.pipelines.dark_pipeline import process_dark_image
 from preprocess.pipelines.document_pipeline import process_document_image
 from preprocess.pipelines.screenshot_pipeline import ScreenshotBooster
 from preprocess.pipelines.default_pipeline import process_default_image
-
+from preprocess.pipelines.scene_text_pipeline import process_scene_text_image
 
 class PipelineRouter:
 
@@ -26,22 +26,45 @@ class PipelineRouter:
         # ---------------------------------
         if brightness < 70:
             print("[INFO] Using dark pipeline")
-            return process_dark_image(image)
+            return {
+                    "image": process_dark_image(image),
+                    "scene_text": False
+                }
+
 
         # ---------------------------------
-        # REAL screenshot detection
+        # REAL clean screenshot
+        # فقط اسکرین‌شات واقعی UI
         # ---------------------------------
+
         is_real_screenshot = (
-            ui_score >= 65 and
-            noise < 35 and
-            contrast < 60 and
-            edge_density < 0.12
+
+            # UI واضح
+            ui_score > 0.75
+
+            and
+
+            # نویز خیلی کم
+            noise < 28
+
+            and
+
+            # لبه کم
+            edge_density < 0.10
+
+            and
+
+            # عکس واقعی نباشد
+            contrast < 55
         )
-
         if is_real_screenshot:
-            print("[INFO] Using screenshot pipeline")
-            return ScreenshotBooster.process(image)
 
+            print("[INFO] Using screenshot pipeline")
+
+            return {
+                "image": ScreenshotBooster.process(image),
+                "scene_text": False
+            }
 
 
 
@@ -52,9 +75,13 @@ class PipelineRouter:
         )
 
         if text_heavy_scene:
-            print("[INFO] Real-world text scene detected")
-            return process_default_image(image)
 
+            print("[INFO] Real-world text scene detected")
+
+            return {
+                "image": process_scene_text_image(image),
+                "scene_text": True
+            }
         # ---------------------------------
         # REAL document detection
         # ---------------------------------
@@ -114,9 +141,15 @@ class PipelineRouter:
 
         if is_document:
             print("[INFO] Using document pipeline")
-            return process_document_image(image)
+            return {
+                    "image": process_document_image(image),
+                    "scene_text": False
+                }
         # ---------------------------------
         # Default
         # ---------------------------------
         print("[INFO] Using default pipeline")
-        return process_default_image(image)
+        return {
+                "image": process_default_image(image),
+                "scene_text": False
+            }

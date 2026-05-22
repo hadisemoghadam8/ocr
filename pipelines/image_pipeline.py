@@ -3,10 +3,10 @@
 import os
 import re
 import cv2
-
+from utils.text_region import detect_text_region
 from preprocess.analyzer import ImageAnalyzer
 from preprocess.router import PipelineRouter
-
+from postprocess.normalize_numbers import normalize_numbers
 from engines.manager import OCRManager
 from utils.rotation import detect_best_rotation
 from postprocess.clean_text import clean_ocr_text
@@ -66,7 +66,10 @@ class ImagePipeline:
                 bad_lines += 1
                 continue
 
-            if persian_chars < 2 and english_chars >= 3:
+            if (
+                persian_chars < 2 and
+                english_chars >= 6
+            ):
                 bad_lines += 1
                 continue
 
@@ -90,18 +93,30 @@ class ImagePipeline:
 
     @staticmethod
     def _postprocess_text(text: str) -> str:
+
         text = clean_ocr_text(text)
+
         text = improve_persian_text(text)
+
+        # normalize digits
+        text = normalize_numbers(text)
+
         text = fix_english_ocr(text)
+
         text = clean_bidi(text)
+
         text = fix_bidi_punctuation(text)
 
         lines = []
+
         for line in text.splitlines():
-            lines.append(smart_direction_fix(line))
+
+            lines.append(
+                smart_direction_fix(line)
+            )
 
         return "\n".join(lines)
-
+    
     @staticmethod
     def process(image_path: str) -> str:
         os.makedirs("output", exist_ok=True)
@@ -119,6 +134,7 @@ class ImagePipeline:
         # ---------------------------------
         # Rotation correction
         # ---------------------------------
+        
         rotation_result = detect_best_rotation(image)
         image = rotation_result["image"]
 
@@ -138,9 +154,16 @@ class ImagePipeline:
         # ---------------------------------
         # Select preprocess pipeline
         # ---------------------------------
-        processed_image = PipelineRouter.route(
+        route_result = PipelineRouter.route(
             image,
             image_info
+        )
+
+        processed_image = route_result["image"]
+
+        scene_text = route_result.get(
+            "scene_text",
+            False
         )
 
         if processed_image is None:
@@ -150,21 +173,25 @@ class ImagePipeline:
             "output/debug_preprocess.jpg",
             processed_image
         )
+
         print("[INFO] Preprocessing completed")
 
+        # ---------------------------------
+        # OCR
+        # ---------------------------------
 
-        # ---------------------------------
-        # OCR روی preprocess
-        # ---------------------------------
         raw_text = OCRManager.run_best_engine(
-            processed_image
+            processed_image,
+            scene_text=scene_text
         )
 
-        # ---------------------------------
         # اگر متن خراب بود
         # OCR مستقیم روی تصویر خامِ rotate شده
         # ---------------------------------
-        if ImagePipeline._is_text_bad(raw_text):
+        if (
+            not scene_text and
+            ImagePipeline._is_text_bad(raw_text)
+        ):
 
             print(
                 "[WARNING] Preprocessed OCR bad -> "
@@ -182,12 +209,14 @@ class ImagePipeline:
                 print(
                     "[INFO] Raw image OCR selected"
                 )
-            
         # ---------------------------------
         # Legacy-safe fallback:
         # اگر خروجی بد بود، یک بار روی تصویر چرخیده‌ی خام هم امتحان کن
         # ---------------------------------
-        if ImagePipeline._is_text_bad(raw_text):
+        if (
+            not scene_text and
+            ImagePipeline._is_text_bad(raw_text)
+        ):
             print(
                 "[WARNING] OCR quality poor -> "
                 "retrying on rotated original image"
