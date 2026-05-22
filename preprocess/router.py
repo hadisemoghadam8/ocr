@@ -5,7 +5,9 @@ from preprocess.pipelines.document_pipeline import process_document_image
 from preprocess.pipelines.screenshot_pipeline import ScreenshotBooster
 from preprocess.pipelines.default_pipeline import process_default_image
 from preprocess.pipelines.scene_text_pipeline import process_scene_text_image
-
+from preprocess.pipelines.scene_text_pipeline import (
+    process_scene_text_image
+)
 class PipelineRouter:
 
     @staticmethod
@@ -68,15 +70,16 @@ class PipelineRouter:
 
 
 
-        text_heavy_scene = (
+        scene_text = (
+
             edge_density > 0.09 and
             noise > 50 and
             contrast > 45
         )
 
-        if text_heavy_scene:
+        if scene_text:
 
-            print("[INFO] Real-world text scene detected")
+            print("[INFO] Using scene text pipeline")
 
             return {
                 "image": process_scene_text_image(image),
