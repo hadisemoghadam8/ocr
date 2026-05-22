@@ -39,9 +39,12 @@ class OCRManager:
 
         return str(text)
     
-
     @staticmethod
-    def run_best_engine(image, scene_text=False):
+    def run_best_engine(
+        image,
+        scene_text=False,
+        screenshot_mode=False
+    ):
 
         # -----------------------------
         # Tesseract
@@ -57,15 +60,36 @@ class OCRManager:
             run_easyocr(image)
         )
 
+
+
+        # ---------------------------------
+        # Screenshot -> EasyOCR forced
+        # ---------------------------------
+
+        if screenshot_mode:
+
+            print(
+                "[INFO] Screenshot mode -> EasyOCR forced"
+            )
+
+            return OCRManager.normalize_ocr_output(
+                run_easyocr(
+                    image,
+                    paragraph=True
+                )
+            )
+
         # ---------------------------------
         # Scene text همیشه EasyOCR
         # ---------------------------------
 
+        # engines/manager.py
         if scene_text:
-
             print("[INFO] Scene text → EasyOCR forced")
+            return OCRManager.normalize_ocr_output(
+                run_easyocr(image, paragraph=True)
+            )
 
-            return easy_text
 
         # -----------------------------
         # Score outputs

@@ -1,5 +1,5 @@
 # preprocess/pipelines/scene_text_pipeline.py
-
+#پس زمینه شلوغ
 import cv2
 import numpy as np
 

@@ -17,7 +17,7 @@ from postprocess.rtl import (
     fix_bidi_punctuation,
     smart_direction_fix
 )
-
+from utils.text_region import detect_text_region
 
 class ImagePipeline:
 
@@ -165,6 +165,12 @@ class ImagePipeline:
             "scene_text",
             False
         )
+        screenshot_mode = route_result.get(
+            "screenshot",
+            False
+        )
+
+
 
         if processed_image is None:
             processed_image = image
@@ -182,7 +188,8 @@ class ImagePipeline:
 
         raw_text = OCRManager.run_best_engine(
             processed_image,
-            scene_text=scene_text
+            scene_text=scene_text,
+            screenshot_mode=screenshot_mode
         )
 
         # اگر متن خراب بود
@@ -190,6 +197,7 @@ class ImagePipeline:
         # ---------------------------------
         if (
             not scene_text and
+            not screenshot_mode and
             ImagePipeline._is_text_bad(raw_text)
         ):
 
@@ -214,9 +222,10 @@ class ImagePipeline:
         # اگر خروجی بد بود، یک بار روی تصویر چرخیده‌ی خام هم امتحان کن
         # ---------------------------------
         if (
-            not scene_text and
-            ImagePipeline._is_text_bad(raw_text)
-        ):
+                not scene_text and
+                not screenshot_mode and
+                ImagePipeline._is_text_bad(raw_text)
+            ):
             print(
                 "[WARNING] OCR quality poor -> "
                 "retrying on rotated original image"

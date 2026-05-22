@@ -4,7 +4,6 @@ from preprocess.pipelines.dark_pipeline import process_dark_image
 from preprocess.pipelines.document_pipeline import process_document_image
 from preprocess.pipelines.screenshot_pipeline import ScreenshotBooster
 from preprocess.pipelines.default_pipeline import process_default_image
-from preprocess.pipelines.scene_text_pipeline import process_scene_text_image
 from preprocess.pipelines.scene_text_pipeline import (
     process_scene_text_image
 )
@@ -41,19 +40,19 @@ class PipelineRouter:
 
         is_real_screenshot = (
 
-            ui_score > 0.72
+            ui_score > 0.18
 
             and
 
-            noise < 60
+            noise < 70
 
             and
 
-            edge_density < 0.22
+            edge_density < 0.08
 
             and
 
-            brightness > 120
+            brightness > 170
         )
         if is_real_screenshot:
 
@@ -61,9 +60,9 @@ class PipelineRouter:
 
             return {
                 "image": ScreenshotBooster.process(image),
-                "scene_text": False
+                "scene_text": False,
+                "screenshot": True
             }
-
 
 
         scene_text = (
@@ -135,8 +134,14 @@ class PipelineRouter:
             contrast > 40
         )
         if is_complex_scene:
+
             print("[INFO] Complex scene detected")
-            return process_default_image(image)
+
+            return {
+                "image": process_default_image(image),
+                "scene_text": True,
+                "screenshot": False
+            }
 
         if is_document:
             print("[INFO] Using document pipeline")

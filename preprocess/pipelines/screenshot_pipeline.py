@@ -9,13 +9,10 @@ class ScreenshotBooster:
     @staticmethod
     def process(image):
 
-        # ---------------------------------
-        # upscale
-        # ---------------------------------
         h, w = image.shape[:2]
 
+        # فقط اگر تصویر کوچک است upscale کن
         if max(h, w) < 1400:
-
             image = cv2.resize(
                 image,
                 None,
@@ -24,79 +21,31 @@ class ScreenshotBooster:
                 interpolation=cv2.INTER_CUBIC
             )
 
-        # ---------------------------------
-        # denoise light
-        # ---------------------------------
+        # denoise خیلی سبک
         image = cv2.fastNlMeansDenoisingColored(
             image,
             None,
-            3,
-            3,
-            7,
-            21
+            2,
+            2,
+            5,
+            15
         )
 
-        # ---------------------------------
-        # sharpen فقط ملایم
-        # ---------------------------------
-        kernel = np.array([
-            [0, -1, 0],
-            [-1, 5, -1],
-            [0, -1, 0]
-        ])
-
-        image = cv2.filter2D(
-            image,
-            -1,
-            kernel
-        )
-
-        # ---------------------------------
-        # contrast light
-        # ---------------------------------
-        lab = cv2.cvtColor(
-            image,
-            cv2.COLOR_BGR2LAB
-        )
-
+        # contrast خیلی ملایم
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
 
         clahe = cv2.createCLAHE(
-            clipLimit=1.5,
+            clipLimit=1.2,
             tileGridSize=(8, 8)
         )
-
         l = clahe.apply(l)
 
         lab = cv2.merge([l, a, b])
+        image = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
-        image = cv2.cvtColor(
-            lab,
-            cv2.COLOR_LAB2BGR
-        )
-
-
-        # ---------------------------------
-        # soft sharpen without grayscale
-        # ---------------------------------
-
-        blur = cv2.GaussianBlur(
-            image,
-            (0, 0),
-            1.0
-        )
-
-        image = cv2.addWeighted(
-            image,
-            1.15,
-            blur,
-            -0.15,
-            0
-        )
-        # ---------------------------------
-        # مهم:
-        # threshold نکن
-        # grayscale خالص هم نکن
-        # ---------------------------------
+        # sharpen خیلی ملایم یا حتی حذف آن
+        blur = cv2.GaussianBlur(image, (0, 0), 0.8)
+        image = cv2.addWeighted(image, 1.08, blur, -0.08, 0)
 
         return image
