@@ -3,7 +3,7 @@
 import os
 import re
 import cv2
-from utils.text_region import detect_text_region
+# from utils.text_region import detect_text_region
 from preprocess.analyzer import ImageAnalyzer
 from preprocess.router import PipelineRouter
 from postprocess.normalize_numbers import normalize_numbers
@@ -23,71 +23,10 @@ class ImagePipeline:
 
     @staticmethod
     def _is_text_bad(text: str) -> bool:
-        lines = [
-            line.strip()
-            for line in text.splitlines()
-            if line.strip()
-        ]
 
-        if not lines:
-            return True
+        ratio = ImagePipeline._bad_text_ratio(text)
 
-        bad_lines = 0
-
-        for line in lines:
-            english_chars = sum(
-                ch.isascii() and ch.isalpha()
-                for ch in line
-            )
-
-            persian_chars = sum(
-                '\u0600' <= ch <= '\u06FF'
-                for ch in line
-            )
-
-            symbols = sum(
-                not ch.isalnum() and not ch.isspace()
-                for ch in line
-            )
-
-            valid_chars = english_chars + persian_chars + sum(
-                ch.isdigit() for ch in line
-            )
-
-            garbage = len(
-                re.findall(r'[@#$%^&*_=+<>\\/|~`]', line)
-            )
-
-            if len(line) < 3:
-                bad_lines += 1
-                continue
-
-            if symbols / max(len(line), 1) > 0.35 and persian_chars < 2:
-                bad_lines += 1
-                continue
-
-            if (
-                persian_chars < 2 and
-                english_chars >= 6
-            ):
-                bad_lines += 1
-                continue
-
-            if garbage > 4:
-                bad_lines += 1
-                continue
-
-            if valid_chars < 2:
-                bad_lines += 1
-                continue
-
-        ratio = bad_lines / max(len(lines), 1)
-
-        print(
-            f"[DEBUG] bad_lines={bad_lines} "
-            f"total={len(lines)} "
-            f"ratio={ratio:.2f}"
-        )
+        print(f"[DEBUG] bad ratio={ratio:.2f}")
 
         return ratio > 0.35
 
@@ -117,6 +56,68 @@ class ImagePipeline:
 
         return "\n".join(lines)
     
+    @staticmethod
+    def _bad_text_ratio(text: str) -> float:
+
+        lines = [
+            line.strip()
+            for line in text.splitlines()
+            if line.strip()
+        ]
+
+        if not lines:
+            return 1.0
+
+        bad_lines = 0
+
+        for line in lines:
+
+            english_chars = sum(
+                ch.isascii() and ch.isalpha()
+                for ch in line
+            )
+
+            persian_chars = sum(
+                '\u0600' <= ch <= '\u06FF'
+                for ch in line
+            )
+
+            symbols = sum(
+                not ch.isalnum() and not ch.isspace()
+                for ch in line
+            )
+
+            garbage = len(
+                re.findall(
+                    r'[@#$%^&*_=+<>\\/|~`]',
+                    line
+                )
+            )
+
+            if len(line) < 3:
+                bad_lines += 1
+                continue
+
+            if (
+                symbols / max(len(line), 1) > 0.35
+                and persian_chars < 2
+            ):
+                bad_lines += 1
+                continue
+
+            if garbage > 4:
+                bad_lines += 1
+                continue
+
+            if (
+                persian_chars < 2 and
+                english_chars >= 6
+            ):
+                bad_lines += 1
+
+        return bad_lines / max(len(lines), 1)
+
+
     @staticmethod
     def process(image_path: str) -> str:
         os.makedirs("output", exist_ok=True)
@@ -169,6 +170,10 @@ class ImagePipeline:
             "screenshot",
             False
         )
+        dark_mode = route_result.get(
+            "dark_mode",
+            False
+        )
 
 
 
@@ -182,15 +187,73 @@ class ImagePipeline:
 
         print("[INFO] Preprocessing completed")
 
+
+
+        # ---------------------------------
+        # Detect important text region
+        # ---------------------------------
+
+        if (
+            not screenshot_mode
+            and not scene_text
+            and not dark_mode
+        ):
+
+            processed_image = detect_text_region(
+                processed_image
+            )
         # ---------------------------------
         # OCR
         # ---------------------------------
 
-        raw_text = OCRManager.run_best_engine(
-            processed_image,
-            scene_text=scene_text,
-            screenshot_mode=screenshot_mode
-        )
+        if dark_mode:
+
+            print("[INFO] Dark mode multi-pass OCR")
+
+            # pass 1
+            text_1 = OCRManager.run_best_engine(
+                processed_image
+            )
+
+            # pass 2 -> raw rotated image
+            text_2 = OCRManager.run_best_engine(
+                image
+            )
+
+            score_1 = len(text_1)
+            score_2 = len(text_2)
+
+            bad_1 = ImagePipeline._is_text_bad(text_1)
+            bad_2 = ImagePipeline._is_text_bad(text_2)
+
+            if bad_1 and not bad_2:
+                raw_text = text_2
+
+            elif bad_2 and not bad_1:
+                raw_text = text_1
+
+            else:
+
+                ratio_1 = (
+                    ImagePipeline._bad_text_ratio(text_1)
+                )
+
+                ratio_2 = (
+                    ImagePipeline._bad_text_ratio(text_2)
+                )
+
+                raw_text = (
+                    text_1
+                    if ratio_1 <= ratio_2
+                    else text_2
+                )
+        else:
+
+            raw_text = OCRManager.run_best_engine(
+                processed_image,
+                scene_text=scene_text,
+                screenshot_mode=screenshot_mode
+            )
 
         # اگر متن خراب بود
         # OCR مستقیم روی تصویر خامِ rotate شده
@@ -217,25 +280,6 @@ class ImagePipeline:
                 print(
                     "[INFO] Raw image OCR selected"
                 )
-        # ---------------------------------
-        # Legacy-safe fallback:
-        # اگر خروجی بد بود، یک بار روی تصویر چرخیده‌ی خام هم امتحان کن
-        # ---------------------------------
-        if (
-                not scene_text and
-                not screenshot_mode and
-                ImagePipeline._is_text_bad(raw_text)
-            ):
-            print(
-                "[WARNING] OCR quality poor -> "
-                "retrying on rotated original image"
-            )
-
-            fallback_text = OCRManager.run_best_engine(image)
-
-            if not ImagePipeline._is_text_bad(fallback_text):
-                raw_text = fallback_text
-                print("[INFO] Fallback OCR improved result")
 
         # ---------------------------------
         # Postprocess

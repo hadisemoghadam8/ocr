@@ -1,12 +1,12 @@
 # preprocess/router.py
 
-from preprocess.pipelines.dark_pipeline import process_dark_image
 from preprocess.pipelines.document_pipeline import process_document_image
 from preprocess.pipelines.screenshot_pipeline import ScreenshotBooster
-from preprocess.pipelines.default_pipeline import process_default_image
 from preprocess.pipelines.scene_text_pipeline import (
     process_scene_text_image
 )
+from preprocess.pipelines.default_pipeline import process_default_image
+
 class PipelineRouter:
 
     @staticmethod
@@ -21,17 +21,36 @@ class PipelineRouter:
         noise = info["noise"]
         blur_score = info["blur_score"]
         ui_score = info["ui_score"]
+        # ---------------------------------
+        # Dark UI screenshots
+        # مثل Twitter/X dark mode
+        # ---------------------------------
+
+        from preprocess.pipelines.dark_pipeline import process_dark_image
+        if brightness < 70 and ui_score >= 0.10:
+
+            print("[INFO] Dark UI screenshot pipeline")
+
+            return {
+                "image": process_dark_image(image),
+                "scene_text": False,
+                "screenshot": True,
+                "dark_mode": False
+            }
 
         # ---------------------------------
         # Dark image
         # ---------------------------------
-        if brightness < 70:
-            print("[INFO] Using dark pipeline")
-            return {
-                    "image": process_dark_image(image),
-                    "scene_text": False
-                }
 
+        # if brightness < 70:
+
+        #     print("[INFO] Dark image -> skip preprocessing")
+
+        #     return {
+        #         "image": image,
+        #         "scene_text": False,
+        #         "dark_mode": True
+        #     }
 
         # ---------------------------------
         # REAL clean screenshot
@@ -40,19 +59,15 @@ class PipelineRouter:
 
         is_real_screenshot = (
 
-            ui_score > 0.18
+            ui_score > 0.12
 
             and
 
-            noise < 70
+            noise < 80
 
             and
 
-            edge_density < 0.08
-
-            and
-
-            brightness > 170
+            edge_density < 0.15
         )
         if is_real_screenshot:
 
@@ -133,15 +148,16 @@ class PipelineRouter:
             # کنتراست طبیعی عکس
             contrast > 40
         )
+
         if is_complex_scene:
-
             print("[INFO] Complex scene detected")
-
             return {
-                "image": process_default_image(image),
+                "image": process_scene_text_image(image),
                 "scene_text": True,
-                "screenshot": False
+                "screenshot": False,
+                "dark_mode": False
             }
+
 
         if is_document:
             print("[INFO] Using document pipeline")
@@ -153,7 +169,10 @@ class PipelineRouter:
         # Default
         # ---------------------------------
         print("[INFO] Using default pipeline")
+        h, w = image.shape[:2]
         return {
-                "image": process_default_image(image),
-                "scene_text": False
-            }
+            "image": process_default_image(image),
+            "scene_text": False,
+            "screenshot": False,
+            "dark_mode": False
+        }

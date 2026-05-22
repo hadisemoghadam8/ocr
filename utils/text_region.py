@@ -87,14 +87,17 @@ def detect_text_region(image):
 
     roi = image[y1:y2, x1:x2]
 
-    # sharpen ROI
-    roi = cv2.GaussianBlur(roi, (0, 0), 1.0)
+    blurred = cv2.GaussianBlur(
+        roi,
+        (0, 0),
+        1.0
+    )
 
     roi = cv2.addWeighted(
         roi,
-        1.4,
-        roi,
-        0,
+        1.5,
+        blurred,
+        -0.5,
         0
     )
 
