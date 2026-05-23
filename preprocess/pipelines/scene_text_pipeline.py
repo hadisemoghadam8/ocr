@@ -1,81 +1,123 @@
 # preprocess/pipelines/scene_text_pipeline.py
-#پس زمینه شلوغ
+# #پس زمینه شلوغ
+# import cv2
+# import numpy as np
+
+
+# def process_scene_text_image(image):
+
+#     # ---------------------------------
+#     # upscale
+#     # ---------------------------------
+
+#     h, w = image.shape[:2]
+
+#     if max(h, w) < 1400:
+
+#         image = cv2.resize(
+#             image,
+#             None,
+#             fx=2,
+#             fy=2,
+#             interpolation=cv2.INTER_CUBIC
+#         )
+
+#     # ---------------------------------
+#     # denoise light
+#     # ---------------------------------
+
+#     image = cv2.fastNlMeansDenoisingColored(
+#         image,
+#         None,
+#         2,
+#         2,
+#         5,
+#         15
+#     )
+
+#     # ---------------------------------
+#     # LAB contrast
+#     # ---------------------------------
+
+#     lab = cv2.cvtColor(
+#         image,
+#         cv2.COLOR_BGR2LAB
+#     )
+
+#     l, a, b = cv2.split(lab)
+
+#     clahe = cv2.createCLAHE(
+#         clipLimit=2.0,
+#         tileGridSize=(8, 8)
+#     )
+
+#     l = clahe.apply(l)
+
+#     lab = cv2.merge([l, a, b])
+
+#     image = cv2.cvtColor(
+#         lab,
+#         cv2.COLOR_LAB2BGR
+#     )
+
+#     # ---------------------------------
+#     # text sharpening
+#     # ---------------------------------
+
+#     blur = cv2.GaussianBlur(
+#         image,
+#         (0, 0),
+#         1.0
+#     )
+
+#     image = cv2.addWeighted(
+#         image,
+#         1.12,
+#         blur,
+#         -0.12,
+#         0
+#     )
+
+#     return image
+
+
 import cv2
 import numpy as np
 
 
 def process_scene_text_image(image):
-
-    # ---------------------------------
-    # upscale
-    # ---------------------------------
-
     h, w = image.shape[:2]
 
-    if max(h, w) < 1400:
-
+    # 1) upscale stronger for tiny text
+    if max(h, w) < 1800:
         image = cv2.resize(
             image,
             None,
-            fx=2,
-            fy=2,
-            interpolation=cv2.INTER_CUBIC
+            fx=3,
+            fy=3,
+            interpolation=cv2.INTER_LANCZOS4
         )
 
-    # ---------------------------------
-    # denoise light
-    # ---------------------------------
+    # 2) edge-preserving denoise
+    image = cv2.bilateralFilter(image, 7, 35, 35)
 
-    image = cv2.fastNlMeansDenoisingColored(
-        image,
-        None,
-        2,
-        2,
-        5,
-        15
-    )
-
-    # ---------------------------------
-    # LAB contrast
-    # ---------------------------------
-
-    lab = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2LAB
-    )
-
+    # 3) mild contrast on luminance only
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
 
     clahe = cv2.createCLAHE(
-        clipLimit=2.0,
-        tileGridSize=(8, 8)
+        clipLimit=1.4,
+        tileGridSize=(4, 4)
     )
-
     l = clahe.apply(l)
 
-    lab = cv2.merge([l, a, b])
-
     image = cv2.cvtColor(
-        lab,
+        cv2.merge([l, a, b]),
         cv2.COLOR_LAB2BGR
     )
 
-    # ---------------------------------
-    # text sharpening
-    # ---------------------------------
-
-    blur = cv2.GaussianBlur(
-        image,
-        (0, 0),
-        1.0
-    )
-
-    image = cv2.addWeighted(
-        image,
-        1.12,
-        blur,
-        -0.12,
-        0
-    )
+    # 4) very light sharpening or remove it completely
+    blur = cv2.GaussianBlur(image, (0, 0), 0.8)
+    image = cv2.addWeighted(image, 1.04, blur, -0.04, 0)
 
     return image
