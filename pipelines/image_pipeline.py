@@ -10,7 +10,7 @@ from postprocess.normalize_numbers import normalize_numbers
 from engines.manager import OCRManager
 from utils.rotation import detect_best_rotation
 from postprocess.clean_text import clean_ocr_text
-from postprocess.persian_fix import improve_persian_text
+from postprocess.persian_fix import improve_persian_text, fix_dark_ui_artifacts
 from postprocess.english_fix import fix_english_ocr
 from postprocess.rtl import (
     clean_bidi,
@@ -277,7 +277,10 @@ class ImagePipeline:
         # Postprocess
         # ---------------------------------
         text = ImagePipeline._postprocess_text(raw_text)
+        
+        # ✅ فراخوانی ایمن و شرطی (فقط برای Dark UI)
+        if dark_mode:
+            text = fix_dark_ui_artifacts(text)
 
         print("[INFO] Postprocess completed")
-
         return text
