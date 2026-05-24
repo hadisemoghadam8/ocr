@@ -278,9 +278,11 @@ class ImagePipeline:
         # ---------------------------------
         text = ImagePipeline._postprocess_text(raw_text)
         
-        # ✅ فراخوانی ایمن و شرطی (فقط برای Dark UI)
+        # ✅ فراخوانی فقط برای dark_mode
         if dark_mode:
+            from postprocess.persian_fix import fix_dark_ui_artifacts
             text = fix_dark_ui_artifacts(text)
-
+        
         print("[INFO] Postprocess completed")
         return text
+

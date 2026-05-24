@@ -412,45 +412,34 @@ def improve_persian_text(text: str) -> str:
 # ✅ تابع جدید: اصلاحات اختصاصی و ایمن برای Dark UI
 # --------------------------------------------------
 def fix_dark_ui_artifacts(text: str) -> str:
-    """
-    اصلاحات مینیمال و ایزوله برای آرتیفکت‌های خاص اسکرین‌شات‌های Dark Mode.
-    🔒 فقط روی خطوطی اعمال می‌شود که الگوهای شناخته‌شده دارند.
-    🔒 هیچ تغییری در ساختار عمومی متن یا سایر تصاویر ایجاد نمی‌کند.
-    """
+    """اصلاحات ایمن برای آرتیفکت‌های Dark UI"""
     lines = text.split('\n')
-    cleaned_lines = []
-
-    # الگوهای چسبیدگی "که" به افعال پرکاربرد (بدون آسیب به بلکه/اینکه)
-    verb_que_patterns = [
-        r'(می‌خواهد)که\b',
-        r'(می‌گوید)که\b',
-        r'(می‌کند)که\b',
-        r'(می‌شود)که\b',
-        r'(خواهد)که\b',
-        r'(باید)که\b',
-    ]
-
+    cleaned = []
+    
     for line in lines:
         line = line.strip()
         if not line:
-            cleaned_lines.append('')
+            cleaned.append('')
             continue
-
-        # ۱. اصلاح فاصله افعال چسبیده به "که"
-        for pattern in verb_que_patterns:
-            line = re.sub(pattern, r'\1 که', line)
-
-        # ۲. حذف نویزهای انتهای خط (نقل‌قول، پایپ، براکت و...)
-        # فقط کاراکترهای غیرکلمه‌ای در انتهای خط را پاک می‌کند
+        
+        # اصلاح "می‌خواهدکه" → "می‌خواهد که"
+        line = re.sub(r'(می‌خواهد)که\b', r'\1 که', line)
+        line = re.sub(r'(می‌کند)که\b', r'\1 که', line)
+        
+        # حذف نویزهای تک‌کاراکتری انتهای خط
         line = re.sub(r"['\"\\|`{}\[\]]+$", '', line)
+        line = re.sub(r'\s+ا$', '', line)  # حذف الف ایزوله
+        
+        # اصلاح "انصادالله" → "انصارالله"
+        line = line.replace('انصادالله', 'انصارالله')
+        
+        # اصلاح "دوز معلم" → "روز معلم"
+        line = line.replace('دوز معلم', 'روز معلم')
+        
+        cleaned.append(line)
+    
+    return '\n'.join(cleaned)
 
-        # ۳. حذف الفِ ایزوله انتهای خط (آرتیفکت رایج OCR در dark mode)
-        #  فقط اگر قبلش فاصله باشد تا کلماتی مثل "اما"، "رضا" یا "صدا" آسیب نبینند
-        line = re.sub(r'\s+ا$', '', line)
-
-        cleaned_lines.append(line)
-
-    return '\n'.join(cleaned_lines)
 
 
 def advanced_score(text):

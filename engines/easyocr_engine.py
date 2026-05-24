@@ -4,7 +4,7 @@ import numpy as np
 
 reader = easyocr.Reader(['fa', 'en'], gpu=False, verbose=False)
 
-def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.25, min_size=8, **kwargs):
+def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.3, min_size=10, **kwargs):
     kwargs.pop('lang', None)
     
     results = reader.readtext(
@@ -19,13 +19,11 @@ def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.25, min_size
     
     final_results = []
     for item in results:
-        # ✅ استخراج ایمن (سازگار با paragraph=True و False)
         bbox = item[0]
         text = item[1]
-        conf = item[2] if len(item) > 2 else 1.0  # اگر confidence نبود، پیش‌فرض ۱.
+        conf = item[2] if len(item) > 2 else 1.0
         
-        # 🔍 جداکننده هوشمند: فقط خطوطی که هم فارسی و هم @ دارند را تفکیک می‌کند
-        # این کار باعث می‌شود پست‌پروسس RTL، بخش انگلیسی را به عنوان نویز حذف نکند
+        # 🔍 جداکننده هوشمند (حفظ کامل هندل‌های انگلیسی در خطوط فارسی)
         if '@' in text and any('\u0600' <= c <= '\u06FF' for c in text):
             parts = text.split('@', 1)
             fa_part = parts[0].strip()
@@ -37,7 +35,7 @@ def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.25, min_size
         else:
             final_results.append((bbox, text, conf))
             
-    # لاگ دیباگ (برای اطمینان)
+    # لاگ دیباگ (فقط برای اطمینان از تشخیص هندل)
     for item in final_results:
         if '@' in item[1]:
             print(f"[DEBUG] 🔍 Handle preserved -> '{item[1]}' | Conf: {item[2]:.3f}")
