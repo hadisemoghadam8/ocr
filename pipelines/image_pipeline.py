@@ -10,8 +10,10 @@ from postprocess.normalize_numbers import normalize_numbers
 from engines.manager import OCRManager
 from utils.rotation import detect_best_rotation
 from postprocess.clean_text import clean_ocr_text
-from postprocess.persian_fix import improve_persian_text, fix_dark_ui_artifacts
+from postprocess.persian_fix import improve_persian_text, fix_safe_ocr_artifacts
 from postprocess.english_fix import fix_english_ocr
+
+
 from postprocess.rtl import (
     clean_bidi,
     fix_bidi_punctuation,
@@ -281,7 +283,6 @@ class ImagePipeline:
         # ✅ اعمال اصلاحات ایمن فقط برای حالت‌های مبتنی بر اسکرین‌شات/UI
         # (شامل dark_mode و screenshot_mode)
         if dark_mode or screenshot_mode:
-            from postprocess.persian_fix import fix_safe_ocr_artifacts
             text = fix_safe_ocr_artifacts(text)
 
         print("[INFO] Postprocess completed")

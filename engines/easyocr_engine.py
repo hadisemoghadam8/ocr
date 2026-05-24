@@ -1,21 +1,35 @@
-# C:\Users\ASUS\ocr_project\engines\easyocr_engine.py
+# engines/easyocr_engine.py
 import easyocr
 import numpy as np
 
+# ✅ Reader را یک‌بار در سطح ماژول بسازید (برای کارایی بهتر)
 reader = easyocr.Reader(['fa', 'en'], gpu=False, verbose=False)
 
+
 def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.3, min_size=10, **kwargs):
+    """
+    اجرای EasyOCR روی تصویر و بازگرداندن متن به صورت رشته.
+    
+    Returns:
+        str: متن استخراج‌شده (همیشه رشته، حتی اگر خالی)
+    """
+    
+    # حذف پارامتر lang اگر وجود دارد (چون reader از قبل ساخته شده)
     kwargs.pop('lang', None)
     
-    results = reader.readtext(
-        np.array(img),
-        detail=1,
-        paragraph=paragraph,
-        text_threshold=text_threshold,
-        low_text=low_text,
-        min_size=min_size,
-        **kwargs
-    )
+    try:
+        results = reader.readtext(
+            np.array(img),
+            detail=1,
+            paragraph=paragraph,
+            text_threshold=text_threshold,
+            low_text=low_text,
+            min_size=min_size,
+            **kwargs
+        )
+    except Exception as e:
+        print(f"[WARNING] EasyOCR failed: {e}")
+        return ""  # ✅ در صورت خطا، رشته خالی برگردان
     
     final_results = []
     for item in results:
@@ -39,5 +53,7 @@ def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.3, min_size=
     for item in final_results:
         if '@' in item[1]:
             print(f"[DEBUG] 🔍 Handle preserved -> '{item[1]}' | Conf: {item[2]:.3f}")
-            
-    return [item[1] for item in final_results]
+    
+    # ✅ نکته کلیدی: تبدیل لیست به رشته با \n (برای حفظ ساختار خطوط)
+    texts = [item[1] for item in final_results]
+    return "\n".join(texts) if texts else ""
