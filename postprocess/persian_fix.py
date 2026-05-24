@@ -409,37 +409,41 @@ def improve_persian_text(text: str) -> str:
 
 
 # --------------------------------------------------
-# ✅ تابع جدید: اصلاحات اختصاصی و ایمن برای Dark UI
+# ✅ تابع اصلاحات ایمن و عمومی OCR (جایگزین fix_dark_ui_artifacts)
 # --------------------------------------------------
-def fix_dark_ui_artifacts(text: str) -> str:
-    """اصلاحات ایمن برای آرتیفکت‌های Dark UI"""
+def fix_safe_ocr_artifacts(text: str) -> str:
+    """
+    اصلاحات فوق‌العاده محافظه‌کارانه برای خطاهای شناخته‌شده OCR.
+    🔒 فقط روی الگوهای دقیق عمل می‌کند. هیچ تغییری در متن‌های استاندارد ایجاد نمی‌کند.
+    """
     lines = text.split('\n')
     cleaned = []
-    
+
     for line in lines:
         line = line.strip()
         if not line:
             cleaned.append('')
             continue
-        
-        # اصلاح "می‌خواهدکه" → "می‌خواهد که"
-        line = re.sub(r'(می‌خواهد)که\b', r'\1 که', line)
-        line = re.sub(r'(می‌کند)که\b', r'\1 که', line)
-        
-        # حذف نویزهای تک‌کاراکتری انتهای خط
-        line = re.sub(r"['\"\\|`{}\[\]]+$", '', line)
-        line = re.sub(r'\s+ا$', '', line)  # حذف الف ایزوله
-        
-        # اصلاح "انصادالله" → "انصارالله"
-        line = line.replace('انصادالله', 'انصارالله')
-        
-        # اصلاح "دوز معلم" → "روز معلم"
-        line = line.replace('دوز معلم', 'روز معلم')
-        
-        cleaned.append(line)
-    
-    return '\n'.join(cleaned)
 
+        # ۱. اصلاح چسبیدگی "که" به افعال (با پشتیبانی از فاصله و نیم‌فاصله)
+        # مثال: می‌خواهدکه | میخواهدکه | می‌خواهد‌که
+        line = re.sub(r'(می‌خواهد|می‌کند|می‌شود|می‌گوید|خواهد|باید)[\s\u200c]*که', r'\1 که', line)
+
+        # ۲. اصلاح غلط‌های خاص OCR (فقط وقتی دقیقاً همین رشته وجود داشته باشد)
+        if 'انصادالله' in line:
+            line = line.replace('انصادالله', 'انصارالله')
+        if 'دوز معلم' in line:
+            line = line.replace('دوز معلم', 'روز معلم')
+
+        # ۳. اصلاح خط تیره اشتباه (تبدیل د به -)
+        line = line.replace('د -', '- ')
+
+        # ۴. حذف نویزهای غیرمعتبر انتهای خط (بدون حذف اعداد یا حروف معتبر)
+        line = re.sub(r"['\"\\|`{}\[\]]+$", '', line)
+
+        cleaned.append(line)
+
+    return '\n'.join(cleaned)
 
 
 def advanced_score(text):
@@ -479,3 +483,5 @@ def advanced_score(text):
     )
 
     return score
+
+

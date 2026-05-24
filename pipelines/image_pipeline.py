@@ -278,11 +278,11 @@ class ImagePipeline:
         # ---------------------------------
         text = ImagePipeline._postprocess_text(raw_text)
         
-        # ✅ فراخوانی فقط برای dark_mode
-        if dark_mode:
-            from postprocess.persian_fix import fix_dark_ui_artifacts
-            text = fix_dark_ui_artifacts(text)
-        
+        # ✅ اعمال اصلاحات ایمن فقط برای حالت‌های مبتنی بر اسکرین‌شات/UI
+        # (شامل dark_mode و screenshot_mode)
+        if dark_mode or screenshot_mode:
+            from postprocess.persian_fix import fix_safe_ocr_artifacts
+            text = fix_safe_ocr_artifacts(text)
+
         print("[INFO] Postprocess completed")
         return text
-
