@@ -68,10 +68,10 @@ class OCRManager:
         if screenshot_mode:
             print("[INFO] Screenshot mode -> EasyOCR forced")
             return OCRManager.normalize_ocr_output(
-                run_easyocr(image, paragraph=True)  # ✅ True برای مرتب‌سازی خطوط
+                run_easyocr(image, paragraph=True)
             )
         
-        
+
         # ---------------------------------
         # Scene text همیشه EasyOCR
         # ---------------------------------

@@ -9,7 +9,7 @@ def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.25, min_size
     
     results = reader.readtext(
         np.array(img),
-        detail=1,  
+        detail=1,
         paragraph=paragraph,
         text_threshold=text_threshold,
         low_text=low_text,
@@ -17,21 +17,29 @@ def run_easyocr(img, paragraph=True, text_threshold=0.5, low_text=0.25, min_size
         **kwargs
     )
     
-    # 🔍 لاگ‌گیری ایمن (سازگار با paragraph=True و False)
-    handle_found = False
+    final_results = []
     for item in results:
-        # در حالت paragraph=False: 3 آیتم (bbox, text, conf)
-        # در حالت paragraph=True:  2 آیتم (bbox, text)
+        # ✅ استخراج ایمن (سازگار با paragraph=True و False)
+        bbox = item[0]
         text = item[1]
-        conf = item[2] if len(item) > 2 else 1.0
+        conf = item[2] if len(item) > 2 else 1.0  # اگر confidence نبود، پیش‌فرض ۱.
         
-        if '@' in text or 'fateme' in text.lower() or 'daniyali' in text.lower():
-            print(f"[DEBUG] 🔍 Handle detected -> Text: '{text}' | Confidence: {conf:.3f}")
-            handle_found = True
+        # 🔍 جداکننده هوشمند: فقط خطوطی که هم فارسی و هم @ دارند را تفکیک می‌کند
+        # این کار باعث می‌شود پست‌پروسس RTL، بخش انگلیسی را به عنوان نویز حذف نکند
+        if '@' in text and any('\u0600' <= c <= '\u06FF' for c in text):
+            parts = text.split('@', 1)
+            fa_part = parts[0].strip()
+            en_part = '@' + parts[1].strip()
+            if fa_part:
+                final_results.append((bbox, fa_part, conf))
+            if en_part:
+                final_results.append((bbox, en_part, conf))
+        else:
+            final_results.append((bbox, text, conf))
             
-    if not handle_found:
-        print("[DEBUG] ⚠️ Engine did NOT detect '@fatemedaniyali' in raw output.")
-        print("[DEBUG] 📦 First 3 raw items:", results[:3])
-    
-    # 🔄 تبدیل به فرمت استاندارد برای manager.py
-    return [item[1] for item in results]
+    # لاگ دیباگ (برای اطمینان)
+    for item in final_results:
+        if '@' in item[1]:
+            print(f"[DEBUG] 🔍 Handle preserved -> '{item[1]}' | Conf: {item[2]:.3f}")
+            
+    return [item[1] for item in final_results]
