@@ -5,7 +5,7 @@ import numpy as np
 def process_dark_image(image):
     """
     نسخه نهایی Dark UI Pipeline (استاندارد OCR)
-    استراتژی: ایزوله‌سازی محتوا -> باینری‌سازی Otsu -> مورفولوژی افقی ایمن
+    استراتژی: ایزوله‌سازی محتوا -> باینری‌سازی Otsu -> مورفولوژی ایمن برای انگلیسی
     """
 
     # # ---------------------------------
@@ -42,17 +42,13 @@ def process_dark_image(image):
     _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # ---------------------------------
-    # 6. Morphology (ترمیم شکستگی‌ها بدون تحریف حروف)
+    # 6. Morphology (اصلاح نهایی برای حفظ انگلیسی)
     # ---------------------------------
-    # کرنل افقی (3,1): فقط شکستگی‌های افقی حروف فارسی (مثل عوا_اض) را وصل می‌کند
-    # به نقاط، حروف انگلیسی یا انتهای د/ر کاری ندارد
-    kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 1))
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_h)
-    
-    # حذف نویزهای تک‌پیکسلی باقی‌مانده
+    # حذف MORPH_CLOSE که حروف نازک انگلیسی را حذف می‌کند
+    # فقط MORPH_OPEN برای حذف نویز، با کرنل بسیار کوچک
     kernel_clean = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
-    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_clean)
-
+    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_clean, iterations=1)
+    
     # ---------------------------------
     # 7. Return (فرمت رنگی برای سازگاری با EasyOCR)
     # ---------------------------------

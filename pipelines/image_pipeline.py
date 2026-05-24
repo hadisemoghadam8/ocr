@@ -202,6 +202,8 @@ class ImagePipeline:
             processed_image = detect_text_region(
                 processed_image
             )
+
+
         # ---------------------------------
         # OCR
         # ---------------------------------
@@ -210,15 +212,11 @@ class ImagePipeline:
 
             print("[INFO] Dark mode multi-pass OCR")
 
-            # pass 1
-            text_1 = OCRManager.run_best_engine(
-                processed_image
-            )
+            # pass 1: روی تصویر پردازش‌شده
+            text_1 = OCRManager.run_best_engine(processed_image)
 
-            # pass 2 -> raw rotated image
-            text_2 = OCRManager.run_best_engine(
-                image
-            )
+            # pass 2: روی تصویر خامِ چرخش‌یافته (برای مقایسه)
+            text_2 = OCRManager.run_best_engine(image)
 
             score_1 = len(text_1)
             score_2 = len(text_2)
@@ -233,22 +231,14 @@ class ImagePipeline:
                 raw_text = text_1
 
             else:
+                ratio_1 = ImagePipeline._bad_text_ratio(text_1)
+                ratio_2 = ImagePipeline._bad_text_ratio(text_2)
 
-                ratio_1 = (
-                    ImagePipeline._bad_text_ratio(text_1)
-                )
+                # انتخاب بهترین بر اساس نسبت کیفیت
+                raw_text = text_1 if ratio_1 <= ratio_2 else text_2
 
-                ratio_2 = (
-                    ImagePipeline._bad_text_ratio(text_2)
-                )
-
-                raw_text = (
-                    text_1
-                    if ratio_1 <= ratio_2
-                    else text_2
-                )
         else:
-
+            # حالت عادی: فراخوانی استاندارد
             raw_text = OCRManager.run_best_engine(
                 processed_image,
                 scene_text=scene_text,
@@ -270,7 +260,9 @@ class ImagePipeline:
             )
 
             raw_text_2 = OCRManager.run_best_engine(
-                image
+                image,
+                lang=['en', 'fa'],      # اضافه شد
+                paragraph=False         # اضافه شد
             )
 
             if not ImagePipeline._is_text_bad(raw_text_2):
