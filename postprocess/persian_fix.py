@@ -1,3 +1,5 @@
+#C:\Users\ASUS\ocr_project\postprocess\persian_fix.py
+
 import re
 
 
