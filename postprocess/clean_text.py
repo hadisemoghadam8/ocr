@@ -49,6 +49,9 @@ def clean_ocr_text(text: str) -> str:
         if line.lower() in ["ae", "alll", "lll"]:
             continue
 
+        if line.strip() in ["ممت", "مشا"]:
+            continue
+
         # 🗑 حذف خطوط خیلی کوتاه یا کم‌محتوا
         if valid_chars < 2:
             continue

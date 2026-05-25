@@ -32,32 +32,18 @@ class ImagePipeline:
         text = clean_bidi(text)
         text = fix_bidi_punctuation(text)
         
+        # ✅ اعمال جهت‌دهی هوشمند RTL برای خطوط فارسی
+        from postprocess.rtl import smart_direction_fix
+        lines = text.split('\n')
+        text = '\n'.join(smart_direction_fix(line) for line in lines)
+        
+        return text.strip()
+
+
+        
         # ✅ برگرداندن متن نهایی بدون حلقه‌ی اضافه‌کننده‌ی کاراکترهای مخفی
         return text.strip()
     
-    
-    # @staticmethod
-    # def _postprocess_text(text: str) -> str:
-    #     # ۱. تمیزکاری عمومی
-    #     text = clean_ocr_text(text)
-        
-    #     # ۲. اصلاحات فارسی (شامل تبدیل حروف و نیم‌فاصله)
-    #     text = improve_persian_text(text)
-        
-    #     # ۳. نرمال‌سازی اعداد
-    #     text = normalize_numbers(text)
-        
-    #     # ۴. اصلاحات انگلیسی
-    #     text = fix_english_ocr(text)
-        
-    #     # ۵. حذف کاراکترهای مخفی سیستمی (نویز)
-    #     text = clean_bidi(text)
-        
-    #     # ۶. اصلاح فاصله علائم نگارشی
-    #     text = fix_bidi_punctuation(text)
-        
-    #     # ✅ برگرداندن متن نهایی بدون هیچ کاراکتر اضافه‌ای
-    #     return text.strip()
     
     @staticmethod
     def _bad_text_ratio(text: str) -> float:

@@ -21,6 +21,7 @@ def fix_english_ocr(text: str) -> str:
         r'\bIII\b': "I'll",
         r'\bI1l\b': "I'll",
         r'\bI\'II\b': "I'll",
+        r'@emini(?=\s|$)': "@Gemini",
 
         # فاصله‌گذاری علائم انگلیسی
         r'(?<!\n)[ \t]+([.,!?;:])': r'\1',
@@ -41,14 +42,17 @@ def fix_english_ocr(text: str) -> str:
     # لیست کلمات رایج انگلیسی که با G شروع می‌شوند و نباید تبدیل شوند
     excluded_words = {
         'google', 'gmail', 'great', 'good', 'go', 'get', 
-        'gym', 'game', 'group', 'guide', 'general', 'global'
+        'gym', 'game', 'group', 'guide', 'general', 'global', 'gemini' 
     }
     
     def replace_g_with_at(match):
-        prefix = match.group(1)  # فضای قبل یا شروع خط
-        username = match.group(2)  # بخش بعد از G
-        # اگر کلمه در لیست استثنا نبود، تبدیل کن
-        if username.lower() not in excluded_words:
+        prefix = match.group(1)
+        username = match.group(2)
+        
+        # ✅ ساخت کلمه‌ی کامل (G + بخش بعدی) برای چک صحیح
+        full_word = "G" + username
+        
+        if full_word.lower() not in excluded_words:
             return prefix + '@' + username
         return match.group(0)
     

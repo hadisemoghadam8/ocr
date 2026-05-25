@@ -86,11 +86,7 @@ def clean_bidi(text: str) -> str:
     if text is None or not isinstance(text, str):
         return ""
     
-    return re.sub(
-        r'[\u200e\u200f\u202a-\u202e\u2066-\u2069]',
-        '',
-        text
-    )
+    return re.sub(r'[\u200e\u200f\u2066-\u2069]', '', text)
 # =========================================================
 # 🔹 اصلاح فاصله‌گذاری علائم نگارشی
 # =========================================================
@@ -206,12 +202,12 @@ def smart_direction_fix(line: str) -> str:
     # ۷. فقط اگر فارسی غالب بود (حداقل ۲ برابر انگلیسی) → RTL اعمال شود
     # -----------------------------------------------------
     if persian_chars > english_chars * 2:
-        # \u202B = RLE (Right-To-Left Embedding): شروع جهت راست‌به‌چپ
-        # \u202C = PDF (Pop Directional Formatting): پایان جهت‌دهی
+        # ✅ اگر خط از قبل کد RTL دارد، دوباره اضافه نکن
+        if line.startswith('\u202B') and line.endswith('\u202C'):
+            return line
         rtl_start = '\u202B'
         rtl_end = '\u202C'
         return rtl_start + line + rtl_end
-
     # -----------------------------------------------------
     # ۸. در غیر این صورت → خط بدون تغییر برگردانده شود
     # -----------------------------------------------------

@@ -331,6 +331,14 @@ def detect_best_rotation(cv_image):
                 )
             )
 
+
+            english_chars = len(
+                re.findall(
+                    r'[A-Za-z]',
+                    text
+                )
+            )
+
             english_noise = len(
                 re.findall(
                     r'[A-Za-z]{1,2}',
@@ -368,6 +376,13 @@ def detect_best_rotation(cv_image):
                 f"score={score:.2f}"
             )
 
+
+            # ✅ چک کیفیت: اگر متن بیشتر انگلیسی‌نماست ولی "فارسی" تشخیص داده شده، احتمالاً وارونه است
+            if english_chars > persian * 2 and persian > 10:
+                # حروف انگلیسی وارونه به‌عنوان فارسی شناخته شده‌اند → جریمه سنگین
+                score = -999999
+                print(f"[DEBUG] angle={angle} → penalized for fake Persian")
+
             if score > best_score:
 
                 best_score = score
@@ -376,6 +391,12 @@ def detect_best_rotation(cv_image):
 
         except Exception as e:
             print(e)
+
+        # ✅ چک نهایی: اگر بهترین امتیاز منفی است، به ۰ درجه برگرد
+    if best_score < 0:
+        print(f"[WARNING] All rotations scored negative -> reverting to 0°")
+        best_angle = 0
+        best_image = pil_image
 
     corrected_cv = cv2.cvtColor(
         np.array(best_image),
