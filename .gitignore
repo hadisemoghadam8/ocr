@@ -11,3 +11,4 @@ output/
 # IDE settings
 .idea/
 .vscode/
+samples/
