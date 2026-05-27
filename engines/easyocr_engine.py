@@ -1,7 +1,7 @@
-
 # engines/easyocr_engine.py
 import easyocr
 import numpy as np
+import cv2
 
 # ✅ Reader را یک‌بار در سطح ماژول بسازید (برای کارایی بهتر)
 reader = easyocr.Reader(['fa', 'en'], gpu=False, verbose=False)
@@ -19,18 +19,21 @@ def run_easyocr(img, paragraph=False, text_threshold=0.6, low_text=0.4, min_size
     kwargs.pop('lang', None)
     
     try:
+        # ✅ تغییر کلیدی: استفاده از paragraph=True برای حفظ ترتیب طبیعی متن
         results = reader.readtext(
             np.array(img),
             detail=1,
-            paragraph=paragraph,       # ✅ False: تشخیص خط به خط برای دقت بیشتر
-            text_threshold=text_threshold,  # ✅ 0.6: فیلتر کردن نتایج با اطمینان پایین
-            low_text=low_text,         # ✅ 0.4: حساسیت کمتر به نویزهای پس‌زمینه
-            min_size=min_size,         # ✅ 15: نادیده گرفتن المان‌های خیلی ریز (مثل خط‌های نازک _)
+            paragraph=True,        # ✅ True: تشخیص پاراگراف برای حفظ ترتیب
+            text_threshold=text_threshold,
+            low_text=low_text,
+            min_size=min_size,
+            width_ths=0.5,         # ✅ اتصال باکس‌های نزدیک به هم
+            ycenter_ths=0.5,       # ✅ آستانه مرکز Y برای گروه‌بندی
             **kwargs
         )
     except Exception as e:
         print(f"[WARNING] EasyOCR failed: {e}")
-        return ""  # ✅ در صورت خطا، رشته خالی برگردان
+        return ""
     
     final_results = []
     for item in results:
@@ -55,6 +58,9 @@ def run_easyocr(img, paragraph=False, text_threshold=0.6, low_text=0.4, min_size
         if '@' in item[1]:
             print(f"[DEBUG] 🔍 Handle preserved -> '{item[1]}' | Conf: {item[2]:.3f}")
     
-    # ✅ نکته کلیدی: تبدیل لیست به رشته با \n (برای حفظ ساختار خطوط)
+    # ✅ مرتب‌سازی ساده بر اساس Y (از بالا به پایین)
+    final_results.sort(key=lambda x: sum([p[1] for p in x[0]]) / 4)
+    
+    # ✅ تبدیل لیست به رشته با \n (برای حفظ ساختار خطوط)
     texts = [item[1] for item in final_results]
     return "\n".join(texts) if texts else ""
