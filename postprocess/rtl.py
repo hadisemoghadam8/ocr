@@ -1,214 +1,101 @@
 # postprocess/rtl.py
 """
-RTL / BiDi utilities for Persian OCR pipeline
----------------------------------------------
+RTL/BiDi utilities for Persian OCR post-processing.
 
-وظیفه این فایل:
-- تمیز کردن کاراکترهای مخفی BiDi
-- اصلاح فاصله‌گذاری علائم نگارشی
-- جلوگیری از خراب شدن URL و @username و #هشتگ
-- اعمال RTL فقط روی خطوط واقعاً فارسی
-- جلوگیری از شکستن خطوط mixed فارسی/انگلیسی
-
-هدف:
-نمایش پایدار متن فارسی در:
-- txt، terminal، word، markdown، editors
+Handles bidirectional text issues, punctuation spacing, and safe RTL application
+while preserving URLs, handles, and mixed-language content.
 """
 
 import re
 
-
-# =========================================================
-# 🔹 Regex patterns - الگوهای تشخیص
-# =========================================================
-
-# تشخیص URL
-# مثال:
-#   https://google.com
-#   www.google.com
-#   example.ir
-URL_PATTERN = re.compile(
-    r'(https?://\S+|www\.\S+|[A-Za-z0-9_-]+\.(com|ir|org|net))'
-)
-
-# تشخیص username (هندل شبکه‌های اجتماعی)
-# مثال:
-#   @openai
-#   @user_123
+# Patterns for detecting content that should not be modified
+URL_PATTERN = re.compile(r'(https?://\S+|www\.\S+|[A-Za-z0-9_-]+\.(com|ir|org|net))')
 USERNAME_PATTERN = re.compile(r'@\w+')
-
-# تشخیص hashtag
-# مثال:
-#   #python
-#   #هوش_مصنوعی
 HASHTAG_PATTERN = re.compile(r'#\w+')
 
 
-# =========================================================
-# 🔹 تشخیص خطوط mixed (فارسی + انگلیسی)
-# =========================================================
-
 def is_mixed_line(line: str) -> bool:
     """
-    بررسی می‌کند آیا خط شامل هم فارسی و هم انگلیسی هست یا نه.
-
-    چرا مهم است؟
-    چون خطوط mixed معمولاً اگر RTL شوند، ترتیب کلماتشان خراب می‌شود.
-
-    مثال‌های mixed:
-        - "سلام OpenAI"
-        - "Version 2 سلام"
-        - "تست by Python"
-
-    Returns:
-        bool: True اگر خط هم فارسی داشته باشد هم انگلیسی
+    Check if a line contains both Persian and English characters.
+    
+    Mixed lines are left unchanged to avoid breaking word order during RTL application.
     """
-    
-    # شمارش کاراکترهای فارسی (بازه یونیکد فارسی/عربی)
     persian_chars = len(re.findall(r'[\u0600-\u06FF]', line))
-    
-    # شمارش کاراکترهای انگلیسی
     english_chars = len(re.findall(r'[A-Za-z]', line))
-    
-    # اگر هر دو وجود داشتند → خط mixed است
     return persian_chars > 0 and english_chars > 0
 
 
-# =========================================================
-# 🔹 حذف کاراکترهای مخفی BiDi
-# =========================================================
-
 def clean_bidi(text: str) -> str:
     """
-    حذف کاراکترهای مخفی BiDi — با محافظت در برابر ورودی None
+    Remove invisible Unicode BiDi control characters.
+    
+    Handles None or non-string inputs safely.
     """
-    # ✅ اگر ورودی None یا غیررشته بود، رشته خالی برگردان
     if text is None or not isinstance(text, str):
         return ""
     
     return re.sub(r'[\u200e\u200f\u2066-\u2069]', '', text)
-# =========================================================
-# 🔹 اصلاح فاصله‌گذاری علائم نگارشی
-# =========================================================
+
 
 def fix_bidi_punctuation(text: str) -> str:
     """
-    اصلاح فاصله‌گذاری علائم نگارشی فارسی و انگلیسی.
-
-    قوانین اعمال‌شده:
-    1. حذف فاصله قبل از علائم: "سلام ، دنیا" → "سلام، دنیا"
-    2. افزودن فاصله بعد از علائم: "سلام،دنیا" → "سلام، دنیا"
-    3. حذف فاصله بعد از #: "# سلام" → "#سلام"
-
-    علائم تحت پوشش:
-    فارسی: ، ؛ ! ؟
-    انگلیسی: , ; ! ? . :
-
-    Args:
-        text (str): متن ورودی
-
-    Returns:
-        str: متن با فاصله‌گذاری صحیح علائم
-    """
+    Normalize punctuation spacing for Persian and English text.
     
-    # -----------------------------------------------------
-    # ۱. حذف فاصله قبل از علائم نگارشی
-    # -----------------------------------------------------
-    text = re.sub(
-        r'\s+([،,:؛.!؟])',  # فاصله + علامت
-        r'\1',               # فقط علامت
-        text
-    )
-
-    # -----------------------------------------------------
-    # ۲. افزودن فاصله بعد از علائم (اگر کاراکتر بعدی فاصله نباشد)
-    # -----------------------------------------------------
-    text = re.sub(
-        r'([،,:؛.!؟])([^\s])',  # علامت + کاراکتر غیرفضا
-        r'\1 \2',                # علامت + فاصله + کاراکتر
-        text
-    )
-
-    # -----------------------------------------------------
-    # ۳. حذف فاصله بعد از # (برای هشتگ‌ها)
-    # مثال: "# سلام" → "#سلام"
-    # -----------------------------------------------------
+    Rules:
+    - Remove space before punctuation: "سلام ، دنیا" → "سلام، دنیا"
+    - Add space after punctuation: "سلام،دنیا" → "سلام، دنیا"
+    - Remove space after #: "# سلام" → "#سلام"
+    """
+    # Remove space before punctuation marks
+    text = re.sub(r'\s+([،,:؛.!؟])', r'\1', text)
+    
+    # Add space after punctuation if missing
+    text = re.sub(r'([،,:؛.!؟])([^\s])', r'\1 \2', text)
+    
+    # Remove space after hash for proper hashtag formatting
     text = re.sub(r'#\s+', '#', text)
-
+    
     return text
 
 
-# =========================================================
-# 🔹 تابع اصلی: اصلاح هوشمند جهت متن (RTL/LTR)
-# =========================================================
-
 def smart_direction_fix(line: str) -> str:
     """
-    اعمال هوشمند RTL فقط روی خطوط مناسب.
-
-    منطق تصمیم‌گیری:
-    ✅ اگر خط فارسی خالص بود → RTL اعمال شود
-    ❌ اگر خط انگلیسی بود → بدون تغییر بماند
-    ❌ اگر خط mixed بود → بدون تغییر (برای جلوگیری از خرابی ترتیب)
-    ❌ اگر خط حاوی URL بود → بدون تغییر (لینک نشکند)
-    ❌ اگر خط حاوی @username یا #هشتگ بود → بدون تغییر
-
-    Args:
-        line (str): یک خط متن ورودی
-
-    Returns:
-        str: خط با جهت‌دهی صحیح (در صورت نیاز با کدهای کنترل RTL)
+    Apply RTL direction only to lines that are purely Persian.
+    
+    Decision logic:
+    - Pure Persian lines: apply RTL markers
+    - English-only lines: leave unchanged
+    - Mixed Persian/English: leave unchanged (prevents word order issues)
+    - Lines with URLs, @handles, or #hashtags: leave unchanged
+    
+    This ensures stable text rendering across terminals, editors, and document formats.
     """
-    
-    # -----------------------------------------------------
-    # ۱. حذف فاصله‌های ابتدا و انتهای خط
-    # -----------------------------------------------------
     line = line.strip()
-    
-    # اگر خط خالی بود، بدون تغییر برگردان
     if not line:
         return line
 
-    # -----------------------------------------------------
-    # ۲. پاکسازی اولیه علائم نگارشی
-    # -----------------------------------------------------
+    # Normalize punctuation first
     line = fix_bidi_punctuation(line)
 
-    # -----------------------------------------------------
-    # ۳. اگر خط حاوی URL بود → RTL نکن (لینک‌ها خراب می‌شوند)
-    # -----------------------------------------------------
+    # Skip RTL for lines containing URLs, handles, or hashtags
     if URL_PATTERN.search(line):
         return line
-
-    # -----------------------------------------------------
-    # ۴. اگر خط حاوی username یا hashtag بود → RTL نکن
-    # -----------------------------------------------------
     if USERNAME_PATTERN.search(line) or HASHTAG_PATTERN.search(line):
         return line
 
-    # -----------------------------------------------------
-    # ۵. اگر خط mixed (فارسی+انگلیسی) بود → RTL نکن
-    # -----------------------------------------------------
+    # Skip RTL for mixed-language lines
     if is_mixed_line(line):
         return line
 
-    # -----------------------------------------------------
-    # ۶. شمارش کاراکترهای فارسی و انگلیسی
-    # -----------------------------------------------------
+    # Count character types to determine language dominance
     persian_chars = len(re.findall(r'[\u0600-\u06FF]', line))
     english_chars = len(re.findall(r'[A-Za-z]', line))
 
-    # -----------------------------------------------------
-    # ۷. فقط اگر فارسی غالب بود (حداقل ۲ برابر انگلیسی) → RTL اعمال شود
-    # -----------------------------------------------------
+    # Apply RTL only if Persian characters dominate (at least 2:1 ratio)
     if persian_chars > english_chars * 2:
-        # ✅ اگر خط از قبل کد RTL دارد، دوباره اضافه نکن
+        # Avoid double-wrapping if RTL markers already present
         if line.startswith('\u202B') and line.endswith('\u202C'):
             return line
-        rtl_start = '\u202B'
-        rtl_end = '\u202C'
-        return rtl_start + line + rtl_end
-    # -----------------------------------------------------
-    # ۸. در غیر این صورت → خط بدون تغییر برگردانده شود
-    # -----------------------------------------------------
+        return '\u202B' + line + '\u202C'
+    
     return line

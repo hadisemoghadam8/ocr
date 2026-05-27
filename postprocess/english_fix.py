@@ -1,109 +1,82 @@
 # postprocess/english_fix.py
+
+
 import re
 
 
 def fix_english_ocr(text: str) -> str:
     """
-    اصلاحات تخصصی برای متن انگلیسی خروجی OCR.
+    Apply post-processing fixes for English OCR output.
     """
-    
-    # ✅ محافظت در برابر ورودی None یا خالی
     if not text or not isinstance(text, str):
         return ""
-    
-    # =====================================================
-    # 🔹 مرحله ۱: اصلاحات پایه (همیشه اعمال می‌شوند)
-    # =====================================================
+
+    # Basic replacements for common OCR errors and punctuation spacing
     replacements = {
-        # OCR اشتباه برای I'll
         r'\bIll\b': "I'll",
-        r'\bIIl\b': "I'll", 
+        r'\bIIl\b': "I'll",
         r'\bIII\b': "I'll",
         r'\bI1l\b': "I'll",
         r'\bI\'II\b': "I'll",
         r'@emini(?=\s|$)': "@Gemini",
-
-        # فاصله‌گذاری علائم انگلیسی
         r'(?<!\n)[ \t]+([.,!?;:])': r'\1',
-        
-        # فشرده‌سازی فاصله‌های چندتایی
         r'[ \t]{2,}': ' ',
     }
 
     for pattern, repl in replacements.items():
         text = re.sub(pattern, repl, text)
 
-    # =====================================================
-    # 🔹 مرحله ۲: تبدیل G به @ برای هندل‌ها (همیشه اجرا شود!)
-    # =====================================================
-    # این بخش را خارج از شرط english_chars > 30 قرار می‌دهیم
-    # تا حتی برای متن‌های کوتاه انگلیسی هم کار کند
-    
-    # لیست کلمات رایج انگلیسی که با G شروع می‌شوند و نباید تبدیل شوند
+    # Convert leading 'G' to '@' for social media handles
+    # Excludes common English words that start with G
     excluded_words = {
-        'google', 'gmail', 'great', 'good', 'go', 'get', 
-        'gym', 'game', 'group', 'guide', 'general', 'global', 'gemini' 
+        'google', 'gmail', 'great', 'good', 'go', 'get',
+        'gym', 'game', 'group', 'guide', 'general', 'global', 'gemini'
     }
-    
+
     def replace_g_with_at(match):
         prefix = match.group(1)
         username = match.group(2)
-        
-        # ✅ ساخت کلمه‌ی کامل (G + بخش بعدی) برای چک صحیح
         full_word = "G" + username
-        
+
         if full_word.lower() not in excluded_words:
             return prefix + '@' + username
         return match.group(0)
-    
-    # الگو: G در ابتدای کلمه + حداقل ۵ کاراکتر انگلیسی/عدد/آندرلاین بعد از آن
-    text = re.sub(
-        r'(^|\s)G([a-zA-Z][a-zA-Z0-9_]{4,})',
-        replace_g_with_at,
-        text
-    )
 
-    # =====================================================
-    # 🔹 مرحله ۳: اصلاحات پیشرفته (فقط برای متن‌های انگلیسی بلند)
-    # =====================================================
+    # Pattern: G at word boundary followed by 5+ alphanumeric characters
+    text = re.sub(r'(^|\s)G([a-zA-Z][a-zA-Z0-9_]{4,})', replace_g_with_at, text)
+
+    # Advanced fixes: only apply to longer English texts to avoid false positives
     english_chars = len(re.findall(r'[A-Za-z]', text))
 
     if english_chars > 30:
-        
-        # مورد خاص: 2 1 1 --> I'll
+        # Fix specific OCR misreads
         text = re.sub(r'\b2\W*1\W*1\b', "I'll", text)
 
-        # اصلاح ترتیب کلمات در شعر Afternoon
+        # Fix word order in "Afternoon" poem
         text = re.sub(r'\bbe!\s*they\s+Were\b', "be! They were", text)
 
-        # عنوان شعر
-        text = re.sub(
-            r'(?m)^(Afternoon)\s+(Dorothy Parker)\s*$',
-            r'\1 — \2',
-            text
-        )
+        # Format poem title with em-dash
+        text = re.sub(r'(?m)^(Afternoon)\s+(Dorothy Parker)\s*$', r'\1 — \2', text)
 
-        # حذف ویرگول اشتباه ابتدای خط
+        # Remove stray commas at line starts
         text = re.sub(r'(?m)^,([A-Z])', r'\1', text)
 
-        # برگرداندن علامت نقطه/ویرگول به انتهای خط قبل
+        # Move punctuation from line start to previous line end
         text = re.sub(r'\n([,.;:!?])([A-Za-z])', r'\1 \2', text)
 
-        # اصلاح URLs
+        # Fix broken URLs
         text = re.sub(r'www\s+([A-Za-z0-9.-]+)\s+com', r'www.\1.com', text)
         text = re.sub(r'www\s+([A-Za-z0-9.-]+)\s+ir', r'www.\1.ir', text)
 
-        # اصلاح سطر پایانی شعر Afternoon
+        # Fix final line of "Afternoon" poem
         text = re.sub(
             r'be!\s*They\s+were\s+further\s+than',
             "Were further than they be!",
             text
         )
 
-    # =====================================================
-    # 🔹 مرحله ۴: پاکسازی نهایی
-    # =====================================================
+    # Final cleanup: trim whitespace and normalize line breaks
     text = text.strip()
     text = re.sub(r'\n{3,}', '\n\n', text)
-    
+
     return text

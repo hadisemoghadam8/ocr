@@ -1,5 +1,3 @@
-# C:\Users\ASUS\ocr_project\main.py
-
 import os
 import sys
 
@@ -8,10 +6,7 @@ from pipelines.pdf_pipeline import PDFPipeline
 
 
 def main():
-
-    # ---------------------------------
-    # Check input
-    # ---------------------------------
+    # Validate command-line arguments
     if len(sys.argv) < 2:
         print("Usage:")
         print("python main.py <file_path>")
@@ -19,28 +14,20 @@ def main():
 
     file_path = sys.argv[1]
 
-    # ---------------------------------
-    # Check file exists
-    # ---------------------------------
+    # Check if input file exists
     if not os.path.exists(file_path):
         print("[ERROR] File not found")
         return
 
-    # ---------------------------------
-    # File extension
-    # ---------------------------------
+    # Determine file type by extension
     ext = os.path.splitext(file_path)[1].lower()
 
-    # ---------------------------------
-    # Image OCR
-    # ---------------------------------
+    # Process image files
     if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
         print("[INFO] Processing image...")
         text = ImagePipeline.process(file_path)
 
-    # ---------------------------------
-    # PDF OCR
-    # ---------------------------------
+    # Process PDF files
     elif ext == ".pdf":
         print("[INFO] Processing PDF...")
         text = PDFPipeline.process(file_path)
@@ -49,27 +36,20 @@ def main():
         print("[ERROR] Unsupported file type")
         return
 
-    # ---------------------------------
-    # Save output (تغییر یافته)
-    # ---------------------------------
+    # Save extracted text to output directory
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
 
-    # استخراج نام فایل بدون پسوند
     base_name = os.path.splitext(os.path.basename(file_path))[0]
     output_path = os.path.join(output_dir, f"{base_name}.txt")
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(text)
 
-    # ---------------------------------
-    # Done
-    # ---------------------------------
+    # Print completion message and output path
     print("\n====================")
     print("OCR COMPLETED")
     print("====================")
-
-
     print("\n[INFO] Saved to:")
     print(output_path)
 
