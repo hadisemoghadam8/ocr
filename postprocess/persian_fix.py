@@ -227,19 +227,44 @@ def improve_persian_text(text: str) -> str:
     #         text += '.'
         
     # --------------------------------------------------
-    # ✅ ۱۷. جهت‌دهی صریح RTL برای خطوط خالص فارسی
+    # ✅ ۱۷. شکستن هوشمند خطوط خیلی طولانی (فقط پاراگراف‌های پیوسته)
+    # --------------------------------------------------
+    import textwrap
+    temp_lines = text.split('\n')
+    wrapped_lines = []
+    
+    for line in temp_lines:
+        line = line.strip()
+        # فقط خطوطی را می‌شکنیم که:
+        # ۱. خیلی بلند باشند (> ۱۶۰ کاراکتر)
+        # ۲. لینک، هشتگ یا هندل نباشند (برای حفظ ساختار فنی)
+        # ۳. با علائم پایان جمله تمام نشده باشند (برای حفظ ساختار ادبی/داستانی)
+        if (len(line) > 160 and 
+            not any(x in line for x in ['http', 'www.', '@', '#']) and 
+            not line[-1] in '.!?؟'):
+            
+            # شکستن خط با حفظ کلمات
+            wrapped_lines.extend(textwrap.wrap(line, width=160, break_long_words=False))
+        else:
+            # خطوط کوتاه، شعری یا جملات کامل را دست‌نخورده نگه می‌داریم
+            wrapped_lines.append(line)
+            
+    text = '\n'.join(wrapped_lines)
+
+    # --------------------------------------------------
+    # ✅ ۱۸. جهت‌دهی صریح RTL برای خطوط خالص فارسی
     # --------------------------------------------------
     lines = text.split('\n')
     fixed_lines = []
     for line in lines:
-        line = line.strip()
-        if not line:
+        line_stripped = line.strip()
+        if not line_stripped:
             fixed_lines.append('')
             continue
-        if re.search(r'[\u0600-\u06FF]', line) and not re.search(r'[A-Za-z]', line):
-            fixed_lines.append('\u202B' + line + '\u202C')
+        if re.search(r'[\u0600-\u06FF]', line_stripped) and not re.search(r'[A-Za-z]', line_stripped):
+            fixed_lines.append('\u202B' + line_stripped + '\u202C')
         else:
-            fixed_lines.append(line)
+            fixed_lines.append(line_stripped)
     text = '\n'.join(fixed_lines)
 
     # --------------------------------------------------
@@ -248,6 +273,8 @@ def improve_persian_text(text: str) -> str:
     # جلوگیری از کشیده شدن نویزی OCR
     text = re.sub(r"\b([اآ-ی])\1{3,}\b", r"\1\1", text)
     return text.strip()
+
+
 
 def fix_safe_ocr_artifacts(text: str) -> str:
     lines = text.split('\n')
@@ -266,7 +293,7 @@ def fix_safe_ocr_artifacts(text: str) -> str:
         line = line.replace('د -', '- ')
         
         # ✅ حذف آرتیفکت‌های EasyOCR مثل I۱ یا I1 در انتهای خطوط
-        line = re.sub(r'\s*I[1lI]\s*$', '', line)
+        line = re.sub(r'[.!؟،,:؛]?\s*I[1lI۱]\s*$', '', line)
         
         # حذف علائم اضافی انتهای خط
         line = re.sub(r"['\"\\|`{}\[\]]+$", '', line)

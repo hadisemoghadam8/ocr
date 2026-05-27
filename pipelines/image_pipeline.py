@@ -26,10 +26,6 @@ class ImagePipeline:
     @staticmethod
     def _postprocess_text(text: str) -> str:
 
-    # ✅ لاگ دیباگ: نمایش خروجی خام قبل از هر اصلاحی
-        if '_' in text or 'د،' in text:
-            print(f"[DEBUG] RAW OCR TEXT: {repr(text)}")
-
         text = clean_ocr_text(text)
         text = improve_persian_text(text)
         text = normalize_numbers(text)
