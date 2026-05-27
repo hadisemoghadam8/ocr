@@ -1,4 +1,4 @@
-#C:\Users\ASUS\ocr_project\main.py
+# C:\Users\ASUS\ocr_project\main.py
 
 import os
 import sys
@@ -13,10 +13,8 @@ def main():
     # Check input
     # ---------------------------------
     if len(sys.argv) < 2:
-
         print("Usage:")
         print("python main.py <file_path>")
-
         return
 
     file_path = sys.argv[1]
@@ -25,9 +23,7 @@ def main():
     # Check file exists
     # ---------------------------------
     if not os.path.exists(file_path):
-
         print("[ERROR] File not found")
-
         return
 
     # ---------------------------------
@@ -39,44 +35,31 @@ def main():
     # Image OCR
     # ---------------------------------
     if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
-
         print("[INFO] Processing image...")
-
         text = ImagePipeline.process(file_path)
 
     # ---------------------------------
     # PDF OCR
     # ---------------------------------
     elif ext == ".pdf":
-
         print("[INFO] Processing PDF...")
-
         text = PDFPipeline.process(file_path)
 
     else:
-
         print("[ERROR] Unsupported file type")
-
         return
 
     # ---------------------------------
-    # Save output
+    # Save output (تغییر یافته)
     # ---------------------------------
     output_dir = "output"
-
     os.makedirs(output_dir, exist_ok=True)
 
-    output_path = os.path.join(
-        output_dir,
-        "result.txt"
-    )
+    # استخراج نام فایل بدون پسوند
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    output_path = os.path.join(output_dir, f"{base_name}.txt")
 
-    with open(
-        output_path,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(text)
 
     # ---------------------------------
