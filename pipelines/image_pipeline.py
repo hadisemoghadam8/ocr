@@ -135,3 +135,25 @@ class ImagePipeline:
 
         print("[INFO] Postprocess completed")
         return text
+    
+
+    @staticmethod
+    def _postprocess_text(text: str) -> str:
+        text = clean_ocr_text(text)
+        
+        # ✅ ۱. اصلاح هندل‌ها (قبل از Bidi)
+        from postprocess.persian_fix import fix_instagram_handles
+        text = fix_instagram_handles(text)
+        
+        text = improve_persian_text(text)
+        text = normalize_numbers(text)
+        text = fix_english_ocr(text)
+        text = clean_bidi(text)
+        text = fix_bidi_punctuation(text)
+        
+        # ۲. جهت‌دهی RTL
+        from postprocess.rtl import smart_direction_fix
+        lines = text.split('\n')
+        text = '\n'.join(smart_direction_fix(line) for line in lines)
+        
+        return text.strip()

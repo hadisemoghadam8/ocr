@@ -301,6 +301,46 @@ def fix_safe_ocr_artifacts(text: str) -> str:
         cleaned.append(line)
     return '\n'.join(cleaned)
 
+
+def fix_instagram_handles(text: str) -> str:
+    """
+    اصلاح ایمن هندل‌های اینستاگرام: تبدیل C یا S به @
+    شامل اصلاح خطای تورفتگی و پشتیبانی از هر دو خطای رایج OCR
+    """
+    lines = text.split('\n')
+    fixed_lines = []
+    
+    for line in lines:
+        stripped_line = line.strip()
+        
+        # ---------------------------------------------------------
+        # حالت ۱: خط فقط شامل یک کلمه مشکوک است (مثال: Snafisekeshtpour)
+        # ---------------------------------------------------------
+        # الگو: شروع با C یا S + حداقل ۵ کاراکتر دیگر
+        if re.fullmatch(r'[CS][a-zA-Z0-9_]{5,}', stripped_line):
+            line = '@' + stripped_line[1:]
+            print(f"[DEBUG] 🔧 Fixed handle (full line): '{stripped_line}' -> '{line}'")
+            fixed_lines.append(line)
+            continue
+            
+        # ---------------------------------------------------------
+        # حالت ۲: کلمه در میان خط است (مثال: "follow me Cuser")
+        # ---------------------------------------------------------
+        # اینجا باید محتاط‌تر باشیم تا کلمات انگلیسی مثل "Code" یا "System" خراب نشوند.
+        # فقط کلمات خیلی طولانی (بیش از ۱۲ حرف) را اصلاح می‌کنیم.
+        pattern = r'\b(C|S)([a-zA-Z0-9_]{5,})\b'
+        
+        def replacer(match):
+            word = match.group(0)
+            if len(word) > 12:  # کلمات کوتاه مثل Save/System را دست نزن
+                return '@' + word[1:]
+            return word
+            
+        line = re.sub(pattern, replacer, line)
+        fixed_lines.append(line)
+        
+    return '\n'.join(fixed_lines)
+
 def advanced_score(text):
     persian = len(re.findall(r'[\u0600-\u06FF]', text))
     english = len(re.findall(r'[A-Za-z]', text))
