@@ -69,7 +69,6 @@ def main():
     print("OCR COMPLETED")
     print("====================")
 
-    print(text[:1000])
 
     print("\n[INFO] Saved to:")
     print(output_path)

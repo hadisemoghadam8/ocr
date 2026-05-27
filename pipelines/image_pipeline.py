@@ -1,3 +1,4 @@
+#C:\Users\ASUS\ocr_project\pipelines\image_pipeline.py
 import os
 import re
 import cv2
@@ -94,8 +95,8 @@ class ImagePipeline:
         if processed_image is None:
             processed_image = image
 
-        cv2.imwrite("output/debug_preprocess.jpg", processed_image)
-        print("[INFO] Preprocessing completed")
+        # cv2.imwrite("output/debug_preprocess.jpg", processed_image)
+        # print("[INFO] Preprocessing completed")
 
         if (not screenshot_mode and not scene_text and not dark_mode):
             processed_image = detect_text_region(processed_image)
