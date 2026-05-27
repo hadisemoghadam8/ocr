@@ -262,13 +262,23 @@ def fix_safe_ocr_artifacts(text: str) -> str:
         if not line:
             cleaned.append('')
             continue
+        
+        # ✅ این خط مهم را حتماً نگه دار (اصلاح فاصله قبل از "که")
         line = re.sub(r'(می‌خواهد|می‌کند|می‌شود|می‌گوید|خواهد|باید)[\s\u200c]*که', r'\1 که', line)
+        
         if 'انصادالله' in line: line = line.replace('انصادالله', 'انصارالله')
         if 'دوز معلم' in line: line = line.replace('دوز معلم', 'روز معلم')
         line = line.replace('د -', '- ')
+        
+        # ✅ اضافه کنید: حذف آرتیفکت‌های EasyOCR مثل I۱ یا I1 در انتهای خطوط
+        line = re.sub(r'\s*I[۱1lI]\s*$', '', line)
+        
+        # حذف علائم اضافی انتهای خط
         line = re.sub(r"['\"\\|`{}\[\]]+$", '', line)
+        
         cleaned.append(line)
     return '\n'.join(cleaned)
+
 
 
 def advanced_score(text):
