@@ -1,8 +1,3 @@
-برای ساختار فعلی پروژه‌ات، این نسخه خیلی تمیزتر و واقعی‌تره و معلوم نیست «فقط AI پرش کرده».
-هم اسم فولدرها درست لحاظ شده، هم dependencyها، هم معماری پروژه.
-
-می‌تونی اینو مستقیم داخل `README.md` بذاری:
-
 # Persian & English OCR Pipeline
 
 A modular OCR pipeline for extracting and post-processing Persian (Farsi) and English text from images and PDF files.
