@@ -1,61 +1,94 @@
-# پایپ‌لاین OCR فارسی و انگلیسی
+برای ساختار فعلی پروژه‌ات، این نسخه خیلی تمیزتر و واقعی‌تره و معلوم نیست «فقط AI پرش کرده».
+هم اسم فولدرها درست لحاظ شده، هم dependencyها، هم معماری پروژه.
 
-یک پایپ‌لاین ماژولار OCR برای استخراج و پردازش متن فارسی و انگلیسی از روی تصاویر و فایل‌های PDF.
+می‌تونی اینو مستقیم داخل `README.md` بذاری:
 
-این پروژه با ترکیب چند موتور OCR، پایپ‌لاین‌های پیش‌پردازش، ماژول‌های اصلاح متن و مدیریت راست‌به‌چپ (RTL)، کیفیت تشخیص متن را برای اسناد فارسی، انگلیسی و ترکیبی بهبود می‌دهد.
+# Persian & English OCR Pipeline
+
+A modular OCR pipeline for extracting and post-processing Persian (Farsi) and English text from images and PDF files.
+
+The project combines multiple OCR engines, preprocessing pipelines, text correction modules, and RTL handling to improve OCR quality for mixed Persian-English documents.
 
 ---
 
-# قابلیت‌ها
+# Features
 
-* پشتیبانی از OCR برای:
+* OCR support for:
 
-  * فارسی
-  * انگلیسی
-  * متن‌های ترکیبی فارسی و انگلیسی
+  * Persian (Farsi)
+  * English
+  * Mixed Persian-English text
 
-* پشتیبانی از چند موتور OCR:
+* Multiple OCR engines:
 
   * EasyOCR
   * Tesseract OCR
 
-* انتخاب خودکار پایپ‌لاین پیش‌پردازش
+* Automatic preprocessing pipeline selection
 
-* پیش‌پردازش تصویر برای:
+* Image preprocessing for:
 
-  * اسناد
-  * اسکرین‌شات‌ها
-  * تصاویر با رابط کاربری تیره
-  * متن‌های موجود در صحنه
+  * Documents
+  * Screenshots
+  * Dark UI images
+  * Scene text
 
-* پردازش و اصلاح متن فارسی:
+* Persian text post-processing:
 
-  * اصلاح RTL
-  * نرمال‌سازی کاراکترها
-  * پاک‌سازی خطاهای OCR فارسی
+  * RTL correction
+  * Character normalization
+  * Persian OCR cleanup
 
-* اصلاح و نرمال‌سازی متن انگلیسی
+* English text cleanup and normalization
 
-* پشتیبانی از PDF
+* PDF support
 
-* ابزارهای تشخیص ناحیه متن و اصلاح چرخش تصویر
+* Rotation and text-region utilities
 
 ---
 
-# ساختار پروژه
+# Project Structure
 
-```text id="8c0p3v"
+```text
 ocr_project/
 │
-├── engines/                 # ماژول‌های موتور OCR
-├── pipelines/               # پایپ‌لاین‌های اصلی OCR
-├── preprocess/              # ماژول‌های پیش‌پردازش
-├── postprocess/             # ماژول‌های پس‌پردازش متن
-├── utils/                   # ابزارهای کمکی
-├── samples/                 # فایل‌های نمونه
-├── output/                  # خروجی OCR
-├── Tesseract/               # فایل‌های محلی Tesseract
-├── poppler-26.02.0/         # ابزار Poppler برای PDF
+├── engines/                 # OCR engine wrappers
+│   ├── easyocr_engine.py
+│   ├── tesseract_engine.py
+│   └── manager.py
+│
+├── pipelines/               # Main OCR pipelines
+│   ├── image_pipeline.py
+│   └── pdf_pipeline.py
+│
+├── preprocess/
+│   ├── analyzer.py          # Image analysis
+│   ├── router.py            # Pipeline selection
+│   └── pipelines/
+│       ├── dark_pipeline.py
+│       ├── default_pipeline.py
+│       ├── document_pipeline.py
+│       ├── scene_text_pipeline.py
+│       └── screenshot_pipeline.py
+│
+├── postprocess/
+│   ├── clean_text.py
+│   ├── english_fix.py
+│   ├── normalize_numbers.py
+│   ├── persian_fix.py
+│   ├── rtl.py
+│   └── scoring.py
+│
+├── utils/
+│   ├── ocr_utils.py
+│   ├── rotation.py
+│   └── text_region.py
+│
+├── samples/                 # Sample input files
+├── output/                  # OCR output files
+│
+├── Tesseract/               # Local Tesseract binaries
+├── poppler-26.02.0/         # Poppler for PDF processing
 │
 ├── main.py
 ├── requirements.txt
@@ -64,11 +97,11 @@ ocr_project/
 
 ---
 
-# پیش‌نیازها
+# Requirements
 
 * Python 3.10.11
 
-کتابخانه‌های اصلی:
+Main libraries:
 
 * easyocr
 * pytesseract
@@ -78,46 +111,46 @@ ocr_project/
 * pillow
 * scikit-image
 
-نصب وابستگی‌ها:
+Install dependencies:
 
-```bash id="3dnh38"
+```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-# نحوه اجرا
+# Usage
 
-اجرای OCR روی تصویر یا PDF:
+Run OCR on an image or PDF:
 
-```bash id="21kqtf"
+```bash
 python main.py
 ```
 
-فایل‌های ورودی را می‌توانید داخل پوشه `samples/` قرار دهید.
+Input samples can be placed inside the `samples/` directory.
 
-خروجی OCR داخل پوشه `output/` ذخیره خواهد شد.
+OCR results will be saved in the `output/` directory.
 
 ---
 
-# موتورهای OCR
+# OCR Engines
 
 ## EasyOCR
 
-برای تشخیص متن چندزبانه و متن‌های موجود در تصویر استفاده می‌شود.
+Used for flexible multilingual OCR and scene text detection.
 
 ## Tesseract OCR
 
-برای افزایش دقت OCR و پشتیبانی بهتر از زبان فارسی استفاده می‌شود.
+Used for additional OCR accuracy and Persian language support.
 
-داده‌های زبانی موجود:
+Included trained data:
 
 * `fas`
 * `eng`
 
 ---
 
-# فرمت‌های ورودی پشتیبانی‌شده
+# Supported Inputs
 
 * JPG
 * PNG
@@ -125,14 +158,14 @@ python main.py
 
 ---
 
-# توضیحات
+# Notes
 
-* فایل‌های باینری Tesseract داخل پروژه قرار داده شده‌اند.
-* ابزار Poppler برای پردازش PDF در پروژه موجود است.
-* پروژه روی ویندوز و Python 3.10 تست شده است.
+* The project includes local Tesseract binaries.
+* Poppler is included for PDF rendering.
+* Designed and tested on Windows with Python 3.10.
 
 ---
 
-# لایسنس
+# License
 
-این پروژه برای اهداف آموزشی و تحقیقاتی توسعه داده شده است.
+This project is for educational and research purposes.
