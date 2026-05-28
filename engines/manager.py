@@ -1,4 +1,3 @@
-# C:\Users\ASUS\ocr_project\engines\manager.py
 
 from engines.tesseract_engine import run_tesseract
 from engines.easyocr_engine import run_easyocr

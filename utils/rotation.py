@@ -1,4 +1,3 @@
-# C:\Users\ASUS\ocr_project\utils\rotation.py
 
 import re
 import cv2

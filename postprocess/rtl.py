@@ -1,4 +1,3 @@
-# postprocess/rtl.py
 """
 RTL/BiDi utilities for Persian OCR post-processing.
 

@@ -1,4 +1,3 @@
-#C:\Users\ASUS\ocr_project\pipelines\image_pipeline.
 import os
 import re
 import cv2

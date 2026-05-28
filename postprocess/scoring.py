@@ -1,4 +1,3 @@
-# C:\Users\ASUS\ocr_project\postprocess\scoring.py
 
 import re
 

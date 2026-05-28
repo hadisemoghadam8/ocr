@@ -1,4 +1,3 @@
-# preprocess/router.py
 
 from preprocess.pipelines.document_pipeline import process_document_image
 from preprocess.pipelines.screenshot_pipeline import ScreenshotBooster

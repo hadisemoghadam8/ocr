@@ -1,4 +1,3 @@
-# pipelines/pdf_pipeline.py
 
 import os
 import re

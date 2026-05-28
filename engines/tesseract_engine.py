@@ -1,4 +1,3 @@
-# C:\Users\ASUS\ocr_project\engines\tesseract_engine.py
 
 import pytesseract
 

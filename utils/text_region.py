@@ -1,5 +1,3 @@
-#C:\Users\ASUS\ocr_project\utils\text_region.py
-
 
 import cv2
 import numpy as np

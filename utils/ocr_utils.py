@@ -1,4 +1,3 @@
-# utils/ocr_utils.py
 def detect_psm(img):
     """
     Select Tesseract PSM based on image aspect ratio.

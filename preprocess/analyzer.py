@@ -1,4 +1,3 @@
-# C:\Users\ASUS\ocr_project\preprocess\analyzer.py
 
 import cv2
 import numpy as np

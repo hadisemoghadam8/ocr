@@ -1,4 +1,3 @@
-# engines/easyocr_engine.py
 import easyocr
 import numpy as np
 import cv2
