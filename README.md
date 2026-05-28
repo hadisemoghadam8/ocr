@@ -6,6 +6,7 @@ The project combines multiple OCR engines, preprocessing pipelines, text correct
 
 ---
 
+
 # Features
 
 * OCR support for:
